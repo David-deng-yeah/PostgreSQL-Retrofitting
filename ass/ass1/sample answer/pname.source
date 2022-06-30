@@ -1,0 +1,167 @@
+---------------------------------------------------------------------------
+--
+-- pname.source(sql)
+--    Implement a datatype for Given name[s] and Family name[s]
+--
+---------------------------------------------------------------------------
+
+-----------------------------
+-- Create a shell for the new type (optional)
+-----------------------------
+CREATE TYPE PersonName;
+
+-----------------------------
+-- Create I/O functions and the new type
+-----------------------------
+CREATE FUNCTION pname_in(cstring)
+   RETURNS PersonName
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pname_out(PersonName)
+   RETURNS cstring
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE TYPE PersonName (
+   internallength = VARIABLE,
+   input = pname_in,
+   output = pname_out,
+   alignment = int
+);
+
+-----------------------------
+-- Display Functions
+-- C names are different from SQL names
+-----------------------------
+CREATE FUNCTION family(PersonName)
+   RETURNS text
+   AS '_OBJWD_/pname', 'pname_family'
+   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION given(PersonName)
+   RETURNS text
+   AS '_OBJWD_/pname', 'pname_given'
+   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION show(PersonName)
+   RETURNS text
+   AS '_OBJWD_/pname', 'pname_show'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-----------------------------
+-- Operator Functions
+-----------------------------
+CREATE FUNCTION pname_lt(PersonName, PersonName)
+   RETURNS bool
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pname_le(PersonName, PersonName)
+   RETURNS bool
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pname_eq(PersonName, PersonName)
+   RETURNS bool
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pname_ne(PersonName, PersonName)
+   RETURNS bool
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pname_ge(PersonName, PersonName)
+   RETURNS bool
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pname_gt(PersonName, PersonName)
+   RETURNS bool
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-----------------------------
+-- Operators
+-----------------------------
+CREATE OPERATOR < (
+   leftarg = PersonName, rightarg = PersonName,
+   procedure = pname_lt,
+   commutator = > , negator = >= ,
+   restrict = scalarltsel, join = scalarltjoinsel
+);
+
+CREATE OPERATOR <= (
+   leftarg = PersonName, rightarg = PersonName,
+   procedure = pname_le,
+   commutator = >= , negator = > ,
+   restrict = scalarlesel, join = scalarlejoinsel
+);
+
+CREATE OPERATOR = (
+   leftarg = PersonName, rightarg = PersonName,
+   procedure = pname_eq,
+   commutator = = , negator = <> ,
+   restrict = eqsel, join = eqjoinsel,
+   HASHES
+);
+
+CREATE OPERATOR <> (
+   leftarg = PersonName, rightarg = PersonName,
+   procedure = pname_ne,
+   commutator = <> , negator = = ,
+   restrict = neqsel, join = neqjoinsel
+);
+
+CREATE OPERATOR >= (
+   leftarg = PersonName, rightarg = PersonName,
+   procedure = pname_ge,
+   commutator = <= , negator = < ,
+   restrict = scalargesel, join = scalargejoinsel
+);
+
+CREATE OPERATOR > (
+   leftarg = PersonName, rightarg = PersonName,
+   procedure = pname_gt,
+   commutator = < , negator = <= ,
+   restrict = scalargtsel, join = scalargtjoinsel
+);
+
+-----------------------------
+-- Support functions for indexing
+-----------------------------
+CREATE FUNCTION pname_cmp(PersonName, PersonName)
+   RETURNS integer
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+CREATE FUNCTION pname_hash(PersonName)
+   RETURNS integer
+   AS '_OBJWD_/pname'
+   LANGUAGE C IMMUTABLE STRICT;
+
+-----------------------------
+-- The btree indexing operator class
+-----------------------------
+CREATE OPERATOR CLASS pname_ops
+    DEFAULT FOR TYPE PersonName USING btree AS
+        OPERATOR        1       < ,
+        OPERATOR        2       <= ,
+        OPERATOR        3       = ,
+        OPERATOR        4       >= ,
+        OPERATOR        5       > ,
+        FUNCTION        1       pname_cmp(PersonName, PersonName);
+-- optional index support functions
+--         FUNCTION        2       pname_cmp_p();
+--         FUNCTION        3       pname_in_range();
+
+-----------------------------
+-- The hash indexing operator class
+-----------------------------
+CREATE OPERATOR CLASS pname_ops
+    DEFAULT FOR TYPE PersonName USING hash AS
+        OPERATOR        1       = ,
+        FUNCTION        1       pname_hash(PersonName);
+-- optinal index support functions
+--        FUNCTION         2       pname_hash64(PersonName);
