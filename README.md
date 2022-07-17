@@ -10,3 +10,10 @@ An important aspect of this course is to give you a chance to undertake an in-de
 
 # Course Schedule
 ![image](https://user-images.githubusercontent.com/65102150/177365247-058ccda0-2760-4dfd-920a-63ce3dfa04b4.png)
+
+# schedule
+
+2022-7-14: finally i begin the first assignment, i can't wait to coding in PosgreSQL source code!!
+
+![微信截图_20220714153032](https://user-images.githubusercontent.com/65102150/178928881-ab0d045a-f88c-42f6-b75d-0b2c06e1dcd9.png)
+
