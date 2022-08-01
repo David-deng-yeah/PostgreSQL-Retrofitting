@@ -15,5 +15,5 @@ An important aspect of this course is to give you a chance to undertake an in-de
 
 2022-7-14: finally i begin the first assignment, i can't wait to coding in PosgreSQL source code!!
 
-![微信截图_20220714153032](https://user-images.githubusercontent.com/65102150/178928881-ab0d045a-f88c-42f6-b75d-0b2c06e1dcd9.png)
+
 
