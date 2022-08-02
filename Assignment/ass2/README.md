@@ -410,4 +410,46 @@ Each bit-slice is effectively a list of pages that have a specific bit from the 
 
 This drives both the updating of bit-slices and their use in indexing. You will need to modify the functions: newRelation() in reln.c, addToRelation() in reln.c, and findPagesUsingBitSlices() in bsig.c. The modifications to newRelation() are relatively straightforward, but remember to update the relation parameters appropriately. The addToRelation() should take a tuple, produce a page signature for it, then update all of the bit-slices corresponding to 1-bits in the page signature. This can be described roughly as follows:
 
+the ***findPagesUsingBitSlics()*** code is different from **tuple_signature** and **page_signature**:
 
+```c
+void findPagesUsingBitSlices(Query q) {
+    assert(q != NULL);
+    //TODO
+
+    Reln r = q->rel;
+    // Qsig = makePageSig(Query)
+    Bits qsig = makePageSig(r, q->qstring);
+
+    Bits bsig = newBits(bsigBits(r));
+
+    // Pages = AllOneBits
+    setAllBits(q->pages);
+    int flag = -1;
+    // iterate all the pages(bits page size)
+    for (int i = 0; i < psigBits(r); i++) {
+        if (bitIsSet(qsig, i)) {
+            // find the pageId,which page it should be in, one page have maxBsigsPP tuple
+            // so using the index i then we can find the pageId
+            PageID pid = i / maxBsigsPP(r);
+            Page p = getPage(r->bsigf, pid);
+            // get the signature  then store in the bsig
+            getBits(p, i % maxBsigsPP(r), bsig);
+
+            // check whether we are in the same page, do not need to add it twice
+            if (pid != flag) {
+                flag = pid;
+                q->nsigpages++;
+            }
+            // zero bits in Pages which are zero in Slice
+            for (int j = 0; j < nPsigs(r); j++) {
+                if (!bitIsSet(bsig, j)) {
+                    unsetBit(q->pages, j);
+                }
+            }
+            // the number of signature we scanned
+            q->nsigs++;
+        }
+    }
+}
+```
