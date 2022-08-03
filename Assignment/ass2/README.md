@@ -1,5 +1,4 @@
-# Ass2
-
+# Ass 2
 the main component of a database:
 
 - tuple.c
@@ -92,11 +91,215 @@ $ ./dump R
 
 Relations are defined by three data types: Reln, RelnRep, RelnParams. Reln is just a pointer to a RelnRep object; this is useful for passing to functions that need to modify some aspect of the relation structure. RelnRep is a representation of an open relation and contains the parameters, plus file descriptors for all of the open files. RelnParams is a list of various properties of the database. See reln.h for details.
 
+the following is the structure of relation:
+
+(a relation consist of five data files)
+
+```c
+// Relation parameters
+
+typedef struct _RelnParams {
+    // dynamic parameters
+	Count  npages;     // number of data pages
+	Count  ntups;      // number of tuples
+	Count  tsigNpages; // number of tsig pages
+	Count  ntsigs;     // number of tuple signatures (tsigs)
+	Count  psigNpages; // number of psig pages
+	Count  npsigs;     // number of page signatures (psigs)
+	Count  bsigNpages; // number of bsig pages
+	Count  nbsigs;     // number of bit-sliced sigs (bsigs)
+    // fixed parameters (set at relation creation time)
+	Count  nattrs;     // number of attributes
+	float  pF;         // false match probability
+	Count  tupsize;    // # bytes in tuples (all same size)
+	Count  tupPP;      // max tuples per page
+	Count  tk;         // bits set per attribute
+	Count  tm;         // width of tuple signature (#bits)
+	Count  tsigSize;   // # bytes in tuple signature
+	Count  tsigPP;     // max tuple signatures per page
+	Count  pm;         // width of page signature (#bits)
+	Count  psigSize;   // # bytes in page signature
+	Count  psigPP;     // max tuple signatures per page
+	Count  bm;         // width of bit-slice (=maxpages)
+	Count  bsigSize;   // # bytes in bit-slice
+	Count  bsigPP;     // max bit-slices per page
+} RelnParams;
+	
+/*
+Open relation = parameters + open files
+and for a compeleted relation it contains five basic files:
+1. info file
+2. data file
+3. tuple-signature file
+4. page-signature file
+5. bit-sliced-signature file
+*/
+typedef struct _RelnRep {
+	RelnParams params; // relation parameters
+	File  infof;  // handle on info file
+	File  dataf;  // handle on data file
+	File  tsigf;  // handle on tuple signature file
+	File  psigf;  // handle on page signature file
+	File  bsigf;  // handle on bit-sliced signature file
+} RelnRep;
+typedef struct _RelnRep *Reln;
+```
+
+```c
+// open a file with a specified suffix
+// - always open for both reading and writing
+File openFile(char *name, char *suffix) 
+
+// create a new relation (five files)
+// data file has one empty data page
+
+Status newRelation(char *name, Count nattrs, float pF,
+                   Count tk, Count tm, Count pm, Count bm) {
+    
+    // addPage(r->bsigf); p->bsigNpages = 1; p->nbsigs = 0;
+    // Create a file containing "pm" all-zeroes bit-strings,
+    // each of which has length "bm" bits
+
+    // we know the bits-sliced pages, as we know the length of page signature
+    // how many tuples we can store
+}
+
+// check whether a relation already exists
+
+Bool existsRelation(char *name) 
+
+// set up a relation descriptor from relation name
+// open files, reads information from rel.info
+
+Reln openRelation(char *name)
+
+// release files and descriptor for an open relation
+// copy latest information to .info file
+// note: we don't write ChoiceVector since it doesn't change
+
+void closeRelation(Reln r) 
+
+// insert a new tuple into a relation
+// returns page where inserted
+// returns NO_PAGE if insert fails completely
+
+PageID addToRelation(Reln r, Tuple t) {
+    // add tuple to last page 
+    addTupleToPage(r, p, t);
+    rp->ntups++;  //written to disk in closeRelation()
+    putPage(r->dataf, pid, p);
+
+    // compute tuple signature and add to tsigf
+    // make a tuple signature
+    // write into file
+    putPage(r->tsigf, tsigpid, tsigpage);
+
+    // compute page signature and add to psigf
+    // make page signature
+
+    // use page signature to update bit-slices
+    // length of bits signature
+}
+
+// displays info about open Reln (for debugging)
+
+void relationStats(Reln r) 
+```
+
 ## Queries
 
 Queries are defined via a QueryRep structure which contains fields to represent the current state of the scan for the query, plus a collection of statistics counters. It is essentially like the query iteration structures described in lectures, and is used to control and monitor the query evaluation. The QueryRep structure also contains a reference to the relation being queried, and a copy of the query string. The Query data type is simply a pointer to a QueryRep structure. See query.h for details. The following diagram might also help:
 
 ![https://user-images.githubusercontent.com/65102150/182083359-8cd26304-6676-4fd1-a2fc-792b65e397dd.png](https://user-images.githubusercontent.com/65102150/182083359-8cd26304-6676-4fd1-a2fc-792b65e397dd.png)
+
+```c
+typedef struct _QueryRep {
+	// static info
+	Reln    rel;       // need to remember Relation info
+	char   *qstring;   // query string
+	//dynamic info
+	Bits    pages;     // list of pages to examine
+	PageID  curpage;   // current page in scan
+	Count   curtup;    // current tuple within page
+	// statistics info
+	Count   nsigs;     // how many signatures read
+	Count   nsigpages; // how many signature pages read
+	Count   ntuples;   // how many tuples examined
+	Count   ntuppages; // how many data pages read
+	Count   nfalse;    // how many pages had no matching tuples
+} QueryRep;
+```
+
+```c
+// check whether a query is valid for a relation
+// e.g. same number of attributes
+int checkQuery(Reln r, char *q) 
+
+// take a query string (e.g. "1234,?,abc,?")
+// set up a QueryRep object for the scan
+Query startQuery(Reln r, char *q, char sigs) 
+
+// scan through selected pages (q->pages)
+// search for matching tuples and show each
+// accumulate query stats
+void scanAndDisplayMatchingTuples(Query q) {
+
+    assert(q != NULL);
+    //TODO
+    Reln r = q->rel;
+    int pid;
+    int flag;
+
+    // iterate all the pages we have
+    for (int i = 0; i < nPages(r); i++) {
+        flag = 0;
+        pid = i;
+        // if pid is not set to 1
+        if (bitIsSet(q->pages, pid) == FALSE) {
+            continue;
+        }
+
+        // the page has possibility that we want
+        Page p = getPage(dataFile(r), pid);
+
+        // scan all the tuple in the page
+        for (int j = 0; j < pageNitems(p); j++) {
+
+            // get each tuple
+            Tuple t = getTupleFromPage(r, p, j);
+            q->ntuples++;
+            // match the query
+            if (tupleMatch(r, t, q->qstring)) {
+                showTuple(r, t);
+                flag = 1;
+            }
+        }
+        // scan the false page,no tuple matches
+        if (flag == 0) {
+            q->nfalse++;
+        }
+        q->ntuppages++;
+    }
+
+}
+
+// print statistics on query
+
+void queryStats(Query q) {
+    printf("# sig pages read:    %d\n", q->nsigpages);
+    printf("# signatures read:   %d\n", q->nsigs);
+    printf("# data pages read:   %d\n", q->ntuppages);
+    printf("# tuples examined:   %d\n", q->ntuples);
+    printf("# false match pages: %d\n", q->nfalse);
+}
+
+// clean up a QueryRep object and associated data
+
+void closeQuery(Query q) {
+    free(q->pages);
+    free(q);
+}
+```
 
 ## Pages
 
@@ -113,6 +316,33 @@ Bit-strings are defined via a BitsRep structure which contains two counters (one
 ## Tuple
 
 Tuples are just character sequences (like C strings). See tuple.h for details. There are also a range of (hopefully) self-explanatory data types defined in defs.h. The various signature types are represented as bit-strings (Bits).
+
+some core code in shown below:
+
+```c
+// reads/parses next tuple in input
+Tuple readTuple(Reln r, FILE *in)
+
+// extract values into an array of strings
+char **tupleVals(Reln r, Tuple t)
+
+// release memory used for attribute values
+void freeVals(char **vals, int nattrs)
+
+// compare two tuples (allowing for "unknown" values)
+Bool tupleMatch(Reln r, Tuple t1, Tuple t2)
+
+// insert a tuple into a page
+// returns OK status if successful
+// returns NOT_OK if not enough room
+Status addTupleToPage(Reln r, Page p, Tuple t)
+
+// get data for i'th tuple in Page
+Tuple getTupleFromPage(Reln r, Page p, int i)
+
+// display printable version of tuple on stdout
+void showTuple(Reln r, Tuple t)
+```
 
 # Task
 
@@ -409,6 +639,17 @@ Implement indexing using bit-sliced page signatures.
 Each bit-slice is effectively a list of pages that have a specific bit from the page-signature set to 1 (e.g. if a page-level signature has bit 5 set to one, the bit-slice 5 has a 1 bit for every page with a page signature where bit 5 is set). 
 
 This drives both the updating of bit-slices and their use in indexing. You will need to modify the functions: newRelation() in reln.c, addToRelation() in reln.c, and findPagesUsingBitSlices() in bsig.c. The modifications to newRelation() are relatively straightforward, but remember to update the relation parameters appropriately. The addToRelation() should take a tuple, produce a page signature for it, then update all of the bit-slices corresponding to 1-bits in the page signature. This can be described roughly as follows:
+
+```c
+PID = data page where new Tuple inserted
+Psig = makePageSig(Tuple)
+for each i in 0..pm-1 {
+  if (Psig bit[i] is 1) {
+    Slice = get i'th bit slice from bsigFile
+    set the PID'th bit in Slice
+    write up
+
+```
 
 the ***findPagesUsingBitSlics()*** code is different from **tuple_signature** and **page_signature**:
 
