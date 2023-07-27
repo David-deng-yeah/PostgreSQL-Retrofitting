@@ -1,0 +1,9 @@
+Name: libecpg
+Description: PostgreSQL libecpg library
+Url: http://www.postgresql.org/
+Version: 12.5
+Requires: 
+Requires.private: libpq libpgtypes
+Cflags: -I/home/hewen/COMP9135-DBMS-Implementation/pghome/include
+Libs: -L/home/hewen/COMP9135-DBMS-Implementation/pghome/lib -lecpg
+Libs.private:  -lm

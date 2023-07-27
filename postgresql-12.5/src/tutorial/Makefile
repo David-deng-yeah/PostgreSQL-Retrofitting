@@ -13,10 +13,8 @@
 #
 #-------------------------------------------------------------------------
 
-# MODULES = complex funcs 
-MODULES = complex funcs pname
-# DATA_built = advanced.sql basics.sql complex.sql funcs.sql syscat.sql
-DATA_built = advanced.sql basics.sql complex.sql funcs.sql syscat.sql pname.sql
+MODULES = complex funcs
+DATA_built = advanced.sql basics.sql complex.sql funcs.sql syscat.sql
 
 ifdef NO_PGXS
 subdir = src/tutorial
