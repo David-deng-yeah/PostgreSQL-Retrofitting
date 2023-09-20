@@ -1,4 +1,3 @@
-
 PostgreSQL Installation from Source Code
 
 ------------------------------------------------------------------------
@@ -11,7 +10,6 @@ if you intend to build with MinGW or Cygwin; but if you intend to build
 with Microsoft's Visual C++, see the main documentation instead.
 
 ------------------------------------------------------------------------
-
 
 Short Version
 
@@ -31,7 +29,6 @@ Short Version
 The long version is the rest of this document.
 
 ------------------------------------------------------------------------
-
 
 Requirements
 
@@ -164,10 +161,9 @@ the "df" command to check free disk space.
 
 ------------------------------------------------------------------------
 
-
 Installation Procedure
 
-1.  CONFIGURATION
+1.  Configuration
 
     The first step of the installation procedure is to configure the
     source tree for your system and choose the options you would like.
@@ -279,7 +275,7 @@ Installation Procedure
         The HTML-formatted documentation for PostgreSQL will be
         installed under this directory. The default is "DATAROOTDIR".
 
-    NOTE:
+    Note:
 
     Care has been taken to make it possible to install PostgreSQL into
     shared installation locations (such as "/usr/local/include") without
@@ -821,7 +817,7 @@ Installation Procedure
         export COPT='-Werror'
         make
 
-    NOTE:
+    Note:
 
     When developing code inside the server, it is recommended to use the
     configure options "--enable-cassert" (which turns on many run-time
@@ -844,7 +840,7 @@ Installation Procedure
     for one-time flag adjustments, while COPT might be kept set all the
     time.
 
-2.  BUILD
+2.  Build
 
     To start the build, type either of:
 
@@ -876,7 +872,7 @@ Installation Procedure
     Failure to do that can lead to strange error messages, typically
     about missing header files.
 
-3.  REGRESSION TESTS
+3.  Regression Tests
 
     If you want to test the newly built server before you install it,
     you can run the regression tests at this point. The regression tests
@@ -890,9 +886,9 @@ Installation Procedure
     information about interpreting the test results. You can repeat this
     test at any later time by issuing the same command.
 
-4.  INSTALLING THE FILES
+4.  Installing the Files
 
-    NOTE:
+    Note:
 
     If you are upgrading an existing system be sure to read the
     documentation, which has instructions about upgrading a cluster.
@@ -934,7 +930,7 @@ Installation Procedure
     command was needed for the latter, but this step has been folded
     into the standard install.)
 
-    CLIENT-ONLY INSTALLATION:  If you want to install only the client
+    Client-only installation:  If you want to install only the client
     applications and interface libraries, then you can use these
     commands:
 
@@ -946,10 +942,10 @@ Installation Procedure
     "src/bin" has a few binaries for server-only use, but they are
     small.
 
-UNINSTALLATION:  To undo the installation use the command "make
+Uninstallation:  To undo the installation use the command "make
 uninstall". However, this will not remove any created directories.
 
-CLEANING:  After the installation you can free disk space by removing
+Cleaning:  After the installation you can free disk space by removing
 the built files from the source tree with the command "make clean". This
 will preserve the files made by the "configure" program, so that you can
 rebuild everything with "make" later on. To reset the source tree to the
@@ -967,7 +963,6 @@ changes in configuration choices might not propagate everywhere they
 need to.
 
 ------------------------------------------------------------------------
-
 
 Post-Installation Setup
 
@@ -1062,7 +1057,6 @@ communicated via command line options to most client programs.
 
 ------------------------------------------------------------------------
 
-
 Getting Started
 
 The following is a quick summary of how to get PostgreSQL up and running
@@ -1118,7 +1112,6 @@ once installed. The main documentation contains more information.
 
 ------------------------------------------------------------------------
 
-
 What Now?
 
 -   The PostgreSQL distribution contains a comprehensive documentation
@@ -1152,7 +1145,6 @@ What Now?
     documentation also affect performance.
 
 ------------------------------------------------------------------------
-
 
 Supported Platforms
 
@@ -1191,7 +1183,6 @@ PostgreSQL to a new platform, <pgsql-hackers@lists.postgresql.org> is
 the appropriate place to discuss that.
 
 ------------------------------------------------------------------------
-
 
 Platform-Specific Notes
 

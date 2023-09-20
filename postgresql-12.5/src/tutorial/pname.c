@@ -34,11 +34,10 @@ typedef struct
 
 
 // function used to compile the regrex and execute it
-// only beging visible for file pname.c
 static int regexMatch(char * str, char * regexPattern) {
 	regex_t regex;
 	int match = FALSE;
-	// compile the regex, the results-object will be placed in regex_t regex
+	// compile the regex
 	if(regcomp(&regex, regexPattern, REG_EXTENDED)){
 		return FALSE;
 	}
@@ -51,17 +50,24 @@ static int regexMatch(char * str, char * regexPattern) {
 	return match;
 }
 
+
 // function to check family name by regex
 static int check_family_name(char * s){
+	
+	// match the one or more string start with a Capital letter and then any letter(ignore case)
+    // and '-' and '\''. then end with ' ' or not 	
 	char * re = "^(([A-Z][-a-zA-Z\']+)[ ]?)+$";
 	if(!regexMatch(s, re)) {	
 		return FALSE;
 	}
 	return TRUE;
+	
 }
+
 
 // function to check given name by regex
 static int check_given_name(char * s){
+	
 	// match the one or more string start with ' 'or not, followed by a Capital letter and then any letter(ignore case)
     // and '-' and '\''. then end with ' ' or not 	
  	char * re = "^[ ]?(([A-Z][-a-zA-Z\']+)[ ]?)+$";
@@ -72,6 +78,7 @@ static int check_given_name(char * s){
 }
 
 
+
 // function to check the name is valid
 static int valid_name(char *str)
 {
@@ -80,10 +87,10 @@ static int valid_name(char *str)
 	int have=0;
 	// find the first ','
 	for(int i=0;i<strlen(str);i++){
-		if(str[i]==','){
-			have=1;
-			break;
-		}
+			if(str[i]==','){
+				have=1;
+				break;
+			}
 	}
 	// if there is no ',' it is a invalid name
 	if(have==0){
@@ -109,6 +116,8 @@ static int valid_name(char *str)
 	}
 	
 	return TRUE;
+	
+
 }
 
 
@@ -153,12 +162,14 @@ static int pname_cmp(PersonName *p1,PersonName *p2){
 
 	// if the family_name is the same
 	if(strcmp(family_name1,family_name2)==0){
+		
 		// compare the given_name
 		return strcmp(given_name1,given_name2);
 	}
 	else{
 		return strcmp(family_name1,family_name2);
 	}
+
 }
 
 /*****************************************************************************
@@ -166,18 +177,14 @@ static int pname_cmp(PersonName *p1,PersonName *p2){
  *****************************************************************************/
 
 // function for input
-// in PostgreSQL, the C declaration is always Datum funcname(PG_FUNCTION_ARGS)
-// User-defined functions can be written in C, such function will be compiled into dynamically loadable object
-// and can be loaded by the server on demand.
-// we can use marco PG_FUNCTION_INFO_V1 to process it.
 PG_FUNCTION_INFO_V1(pname_in);
 
 Datum
 pname_in(PG_FUNCTION_ARGS)
 {
-	char *str = PG_GETARG_CSTRING(0);
-	int len;
-	PersonName *result;
+	char	   *str = PG_GETARG_CSTRING(0);
+	int		   len;
+	PersonName    *result;
 	char *family = NULL;
 	char *given = NULL;
 	char *temp1=(char *)palloc(strlen(str)+1);
@@ -213,9 +220,9 @@ PG_FUNCTION_INFO_V1(pname_out);
 Datum
 pname_out(PG_FUNCTION_ARGS)
 {
-	PersonName *str = (PersonName *) PG_GETARG_POINTER(0);
+	PersonName    *str = (PersonName *) PG_GETARG_POINTER(0);
 	int len=VARSIZE_ANY_EXHDR(str);
-	char *result;
+	char	   *result;
 	result = (char *) palloc(len);
 	snprintf(result, len, "%s", str->name);
 	PG_RETURN_CSTRING(result);
@@ -228,8 +235,8 @@ PG_FUNCTION_INFO_V1(family);
 Datum
 family(PG_FUNCTION_ARGS)
 {
-	text *pname = (text *) PG_GETARG_TEXT_PP(0);
-	text *result;
+	text    *pname = (text *) PG_GETARG_TEXT_PP(0);
+	text   *result;
 	char *temp;
 	char *family=NULL;
 	char *given=NULL;
@@ -250,8 +257,8 @@ PG_FUNCTION_INFO_V1(given);
 Datum
 given(PG_FUNCTION_ARGS)
 {
-	text *pname = (text *) PG_GETARG_TEXT_PP(0);
-	text *result;
+	text    *pname = (text *) PG_GETARG_TEXT_PP(0);
+	text   *result;
 	char *temp;
 	char *given=NULL;
 	text *given_result;
@@ -263,6 +270,7 @@ given(PG_FUNCTION_ARGS)
 	SET_VARSIZE(result,VARHDRSZ+VARSIZE_ANY_EXHDR(given_result));
 	memcpy(VARDATA(result),VARDATA_ANY(given_result),VARSIZE_ANY_EXHDR(given_result));
 	PG_RETURN_TEXT_P(result);
+
 }
 
 
@@ -283,6 +291,7 @@ show(PG_FUNCTION_ARGS)
 	temp=text_to_cstring(pname);
 	family=strtok_r(temp,",",&given);
 
+	
 	result_given=(char *)palloc(strlen(given)+1);
 	final=(char *)palloc(VARHDRSZ+VARSIZE_ANY_EXHDR(pname)+1);
 	if(isspace(*given)){
@@ -292,6 +301,7 @@ show(PG_FUNCTION_ARGS)
 		sscanf(given,"%s",result_given);
 	}
 	sprintf(final,"%s %s",result_given,family);
+
 
 	temp_result=cstring_to_text(final);
 	result = (text *) palloc(VARHDRSZ+VARSIZE_ANY_EXHDR(temp_result));
@@ -306,8 +316,8 @@ PG_FUNCTION_INFO_V1(pname_bigger);
 
 Datum
 pname_bigger(PG_FUNCTION_ARGS){
-	PersonName *pname1 = (PersonName *) PG_GETARG_POINTER(0);
-	PersonName *pname2 = (PersonName *) PG_GETARG_POINTER(1);
+	PersonName    *pname1 = (PersonName *) PG_GETARG_POINTER(0);
+	PersonName    *pname2 = (PersonName *) PG_GETARG_POINTER(1);
 	int a;
 	a=pname_cmp(pname1,pname2);
 	PG_RETURN_BOOL(a>0);
@@ -318,8 +328,8 @@ PG_FUNCTION_INFO_V1(pname_bigger_equal);
 
 Datum
 pname_bigger_equal(PG_FUNCTION_ARGS){
-	PersonName *pname1 = (PersonName *) PG_GETARG_POINTER(0);
-	PersonName *pname2 = (PersonName *) PG_GETARG_POINTER(1);
+	PersonName    *pname1 = (PersonName *) PG_GETARG_POINTER(0);
+	PersonName    *pname2 = (PersonName *) PG_GETARG_POINTER(1);
 	int a;
 	a=pname_cmp(pname1,pname2);
 	PG_RETURN_BOOL(a>=0);
@@ -330,8 +340,8 @@ PG_FUNCTION_INFO_V1(pname_less);
 
 Datum
 pname_less(PG_FUNCTION_ARGS){
-	PersonName *pname1 = (PersonName *) PG_GETARG_POINTER(0);
-	PersonName *pname2 = (PersonName *) PG_GETARG_POINTER(1);
+	PersonName    *pname1 = (PersonName *) PG_GETARG_POINTER(0);
+	PersonName    *pname2 = (PersonName *) PG_GETARG_POINTER(1);
 	int a;
 	a=pname_cmp(pname1,pname2);
 	PG_RETURN_BOOL(a<0);
@@ -342,8 +352,8 @@ PG_FUNCTION_INFO_V1(pname_less_equal);
 
 Datum
 pname_less_equal(PG_FUNCTION_ARGS){
-	PersonName *pname1 = (PersonName *) PG_GETARG_POINTER(0);
-	PersonName *pname2 = (PersonName *) PG_GETARG_POINTER(1);
+	PersonName    *pname1 = (PersonName *) PG_GETARG_POINTER(0);
+	PersonName    *pname2 = (PersonName *) PG_GETARG_POINTER(1);
 	int a;
 	a=pname_cmp(pname1,pname2);
 	PG_RETURN_BOOL(a<=0);
@@ -354,8 +364,8 @@ PG_FUNCTION_INFO_V1(pname_equal);
 
 Datum
 pname_equal(PG_FUNCTION_ARGS){
-	PersonName *pname1 = (PersonName *) PG_GETARG_POINTER(0);
-	PersonName  *pname2 = (PersonName *) PG_GETARG_POINTER(1);
+	PersonName    *pname1 = (PersonName *) PG_GETARG_POINTER(0);
+	PersonName    *pname2 = (PersonName *) PG_GETARG_POINTER(1);
 	int a;
 	a=pname_cmp(pname1,pname2);
 	PG_RETURN_BOOL(a==0);
@@ -366,8 +376,8 @@ PG_FUNCTION_INFO_V1(pname_not_equal);
 
 Datum
 pname_not_equal(PG_FUNCTION_ARGS){
-	PersonName *pname1 = (PersonName *) PG_GETARG_POINTER(0);
-	PersonName *pname2 = (PersonName *) PG_GETARG_POINTER(1);
+	PersonName    *pname1 = (PersonName *) PG_GETARG_POINTER(0);
+	PersonName    *pname2 = (PersonName *) PG_GETARG_POINTER(1);
 	int a;
 	a=pname_cmp(pname1,pname2);
 	PG_RETURN_BOOL(a!=0);
@@ -378,8 +388,8 @@ PG_FUNCTION_INFO_V1(pname_abs_cmp);
 
 Datum
 pname_abs_cmp(PG_FUNCTION_ARGS){
-	PersonName *pname1 = (PersonName *) PG_GETARG_POINTER(0);
-	PersonName *pname2 = (PersonName *) PG_GETARG_POINTER(1);
+	PersonName    *pname1 = (PersonName *) PG_GETARG_POINTER(0);
+	PersonName    *pname2 = (PersonName *) PG_GETARG_POINTER(1);
 	int a;
 	a=pname_cmp(pname1,pname2);
 	PG_RETURN_INT32(a);
@@ -390,12 +400,7 @@ PG_FUNCTION_INFO_V1(pname_own_hash);
 
 Datum
 pname_own_hash(PG_FUNCTION_ARGS){
-	PersonName *pname = (PersonName *) PG_GETARG_POINTER(0);
-	/*
-     * VARSIZE_ANY_EXHDR is the size of the struct in bytes, minus the
-     * VARHDRSZ or VARHDRSZ_SHORT of its header.  Construct the copy with a
-     * full-length header.
-     */
+	PersonName    *pname = (PersonName *) PG_GETARG_POINTER(0);
 	int len=VARSIZE_ANY_EXHDR(pname);
 	char *result;
 	result=(char *)palloc(len);

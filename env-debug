@@ -1,0 +1,6 @@
+export PGHOME=~/COMP9135-DBMS-Implementation/pghome
+export PGDATA=$PGHOME/../data
+export PGHOST=127.0.0.1
+export PGPORT=5432
+export LD_LIBRARY_PATH=$PGHOME/lib 
+export PATH=$PGHOME/bin:$PATH
