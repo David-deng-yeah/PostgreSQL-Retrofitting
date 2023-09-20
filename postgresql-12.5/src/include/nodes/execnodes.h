@@ -1946,19 +1946,36 @@ typedef struct HashJoinState
 	List	   *hj_OuterHashKeys;	/* list of ExprState nodes */
 	List	   *hj_HashOperators;	/* list of operator OIDs */
 	List	   *hj_Collations;
-	HashJoinTable hj_HashTable;
-	uint32		hj_CurHashValue;
-	int			hj_CurBucketNo;
+	//modify: modify HashJoinState, support bi-directional probing
+	// HashJoinTable hj_HashTable;
+	// uint32		hj_CurHashValue;
+	// int			hj_CurBucketNo;
+	HashJoinState hj_HashTableInner;
+	HashJoinState hj_HashTableOuter;
+	uint32		  hj_CurHashValueInner;
+	uint32		  hj_CurHashValueOuter;
+	int			  hj_CurBucketNoInner;
+	int			  hj_CurBucketNoOuter;
+
 	int			hj_CurSkewBucketNo;
-	HashJoinTuple hj_CurTuple;
+	// HashJoinTuple hj_CurTuple;
+	// TupleTableSlot *hj_OuterTupleSlot;
+	// TupleTableSlot *hj_HashTupleSlot;
+	HashJoinTuple  hj_CurTupleInner;
+	HashJoinTuple  hj_CurTupleOuter;
+	TupleTableSlot *hj_InnerTupleSlot
 	TupleTableSlot *hj_OuterTupleSlot;
-	TupleTableSlot *hj_HashTupleSlot;
+
 	TupleTableSlot *hj_NullOuterTupleSlot;
 	TupleTableSlot *hj_NullInnerTupleSlot;
 	TupleTableSlot *hj_FirstOuterTupleSlot;
 	int			hj_JoinState;
-	bool		hj_MatchedOuter;
+	//bool		hj_MatchedOuter;
 	bool		hj_OuterNotEmpty;
+	bool 		hj_InnerExhausted;
+	bool		hj_OuterExhausted;
+	bool		hj_OuterNeedFill;
+	bool		hj_InnerNeedFill;
 } HashJoinState;
 
 
@@ -2282,12 +2299,15 @@ typedef struct HashState
 	PlanState	ps;				/* its first field is NodeTag */
 	HashJoinTable hashtable;	/* hash table for the hashjoin */
 	List	   *hashkeys;		/* list of ExprState nodes */
+	// modify
+	HashJoinTuple lastInsert;
 
 	SharedHashInfo *shared_info;	/* one entry per worker */
 	HashInstrumentation *hinstrument;	/* this worker's entry */
 
 	/* Parallel hash state. */
 	struct ParallelHashJoinState *parallel_state;
+	int debugInnerOuter;
 } HashState;
 
 /* ----------------
