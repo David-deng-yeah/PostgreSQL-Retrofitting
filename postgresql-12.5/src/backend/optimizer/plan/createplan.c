@@ -226,11 +226,17 @@ static HashJoin *make_hashjoin(List *tlist,
 							   List *hashkeys,
 							   Plan *lefttree, Plan *righttree,
 							   JoinType jointype, bool inner_unique);
-static Hash *make_hash(Plan *lefttree,
-					   List *hashkeys,
-					   Oid skewTable,
-					   AttrNumber skewColumn,
-					   bool skewInherit);
+// modify hash node
+// static Hash *make_hash(Plan *lefttree,
+// 					   List *hashkeys,
+// 					   Oid skewTable,
+// 					   AttrNumber skewColumn,
+// 					   bool skewInherit);
+static Hash *make_hash(
+	Plan *lefttree,
+	List *hashkeys
+);
+
 static MergeJoin *make_mergejoin(List *tlist,
 								 List *joinclauses, List *otherclauses,
 								 List *mergeclauses,
@@ -4380,8 +4386,11 @@ create_hashjoin_plan(PlannerInfo *root,
 					 HashPath *best_path)
 {
 	HashJoin   *join_plan;
-	Hash	   *hash_plan;
-	Plan	   *outer_plan;
+	// modify
+	//Hash	   *hash_plan;
+	Hash	   *outer_hash_plan;
+	Hash	   *inner_hash_plan;
+	Hash	   *outer_plan;
 	Plan	   *inner_plan;
 	List	   *tlist = build_path_tlist(root, &best_path->jpath.path);
 	List	   *joinclauses;
@@ -4462,29 +4471,30 @@ create_hashjoin_plan(PlannerInfo *root,
 	 * most common combinations of outer values, which we don't currently have
 	 * enough stats for.)
 	 */
-	if (list_length(hashclauses) == 1)
-	{
-		OpExpr	   *clause = (OpExpr *) linitial(hashclauses);
-		Node	   *node;
+	// modify: remove skew optimization
+	// if (list_length(hashclauses) == 1)
+	// {
+	// 	OpExpr	   *clause = (OpExpr *) linitial(hashclauses);
+	// 	Node	   *node;
 
-		Assert(is_opclause(clause));
-		node = (Node *) linitial(clause->args);
-		if (IsA(node, RelabelType))
-			node = (Node *) ((RelabelType *) node)->arg;
-		if (IsA(node, Var))
-		{
-			Var		   *var = (Var *) node;
-			RangeTblEntry *rte;
+	// 	Assert(is_opclause(clause));
+	// 	node = (Node *) linitial(clause->args);
+	// 	if (IsA(node, RelabelType))
+	// 		node = (Node *) ((RelabelType *) node)->arg;
+	// 	if (IsA(node, Var))
+	// 	{
+	// 		Var		   *var = (Var *) node;
+	// 		RangeTblEntry *rte;
 
-			rte = root->simple_rte_array[var->varno];
-			if (rte->rtekind == RTE_RELATION)
-			{
-				skewTable = rte->relid;
-				skewColumn = var->varattno;
-				skewInherit = rte->inh;
-			}
-		}
-	}
+	// 		rte = root->simple_rte_array[var->varno];
+	// 		if (rte->rtekind == RTE_RELATION)
+	// 		{
+	// 			skewTable = rte->relid;
+	// 			skewColumn = var->varattno;
+	// 			skewInherit = rte->inh;
+	// 		}
+	// 	}
+	// }
 
 	/*
 	 * Collect hash related information. The hashed expressions are
@@ -4503,33 +4513,49 @@ create_hashjoin_plan(PlannerInfo *root,
 		outer_hashkeys = lappend(outer_hashkeys, linitial(hclause->args));
 		inner_hashkeys = lappend(inner_hashkeys, lsecond(hclause->args));
 	}
-
+	// modify: change the way building hash node
+	// quote: func create_hashjoin_plan()
 	/*
 	 * Build the hash node and hash join node.
 	 */
-	hash_plan = make_hash(inner_plan,
-						  inner_hashkeys,
-						  skewTable,
-						  skewColumn,
-						  skewInherit);
+	// hash_plan = make_hash(inner_plan,
+	// 					  inner_hashkeys,
+	// 					  skewTable,
+	// 					  skewColumn,
+	// 					  skewInherit);
+	inner_hash_plan = make_hash(
+		inner_plan,
+		inner_hashkeys
+	);
+
+	outer_hash_plan = make_hash(
+		outer_plan,
+		outer_hashkeys
+	);
 
 	/*
 	 * Set Hash node's startup & total costs equal to total cost of input
 	 * plan; this only affects EXPLAIN display not decisions.
 	 */
-	copy_plan_costsize(&hash_plan->plan, inner_plan);
-	hash_plan->plan.startup_cost = hash_plan->plan.total_cost;
+	// copy_plan_costsize(&hash_plan->plan, inner_plan);
+	// hash_plan->plan.startup_cost = hash_plan->plan.total_cost;
+	// modify: plan_costsize
+	copy_plan_costsize(&inner_hash_plan->plan, inner_plan);
+	inner_hash_plan->plan.startup_cost = inner_hash_plan->plan.total_cost;
+	copy_plan_costsize(&outer_hash_plan->plan, outer_plan);
+	outer_hash_plan->plan.startup_cost = outer_hash_plan->plan.total_cost;
 
+	// modify: remove parallel
 	/*
 	 * If parallel-aware, the executor will also need an estimate of the total
 	 * number of rows expected from all participants so that it can size the
 	 * shared hash table.
 	 */
-	if (best_path->jpath.path.parallel_aware)
-	{
-		hash_plan->plan.parallel_aware = true;
-		hash_plan->rows_total = best_path->inner_rows_total;
-	}
+	// if (best_path->jpath.path.parallel_aware)
+	// {
+	// 	hash_plan->plan.parallel_aware = true;
+	// 	hash_plan->rows_total = best_path->inner_rows_total;
+	// }
 
 	join_plan = make_hashjoin(tlist,
 							  joinclauses,
@@ -4538,8 +4564,11 @@ create_hashjoin_plan(PlannerInfo *root,
 							  hashoperators,
 							  hashcollations,
 							  outer_hashkeys,
-							  outer_plan,
-							  (Plan *) hash_plan,
+							//   outer_plan,
+							//   (Plan *) hash_plan,
+							// modify
+							  (Plan*) outer_hash_plan,
+							  (Plan*) inner_hash_plan,
 							  best_path->jpath.jointype,
 							  best_path->jpath.inner_unique);
 
@@ -5604,13 +5633,15 @@ make_hashjoin(List *tlist,
 
 	return node;
 }
-
+// modify: remove skew optimization
+// static Hash *
+// make_hash(Plan *lefttree,
+// 		  List *hashkeys,
+// 		  Oid skewTable,
+// 		  AttrNumber skewColumn,
+// 		  bool skewInherit)
 static Hash *
-make_hash(Plan *lefttree,
-		  List *hashkeys,
-		  Oid skewTable,
-		  AttrNumber skewColumn,
-		  bool skewInherit)
+make_hash(Plan *lefttree, List *hashkeys)
 {
 	Hash	   *node = makeNode(Hash);
 	Plan	   *plan = &node->plan;
@@ -5621,9 +5652,9 @@ make_hash(Plan *lefttree,
 	plan->righttree = NULL;
 
 	node->hashkeys = hashkeys;
-	node->skewTable = skewTable;
-	node->skewColumn = skewColumn;
-	node->skewInherit = skewInherit;
+	// node->skewTable = skewTable;
+	// node->skewColumn = skewColumn;
+	// node->skewInherit = skewInherit;
 
 	return node;
 }
