@@ -13,9 +13,6 @@ An important aspect of this course is to give you a chance to undertake an in-de
 
 # schedule
 
-2022-7-14: finally i begin the first assignment, i can't wait to coding in PosgreSQL source code!!
-
-2022-8-1: finally compelete this course!!
 
 
 
