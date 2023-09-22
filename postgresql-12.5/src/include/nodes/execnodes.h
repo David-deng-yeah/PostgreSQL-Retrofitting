@@ -1950,29 +1950,28 @@ typedef struct HashJoinState
 	// HashJoinTable hj_HashTable;
 	// uint32		hj_CurHashValue;
 	// int			hj_CurBucketNo;
-	HashJoinState hj_HashTableInner;
-	HashJoinState hj_HashTableOuter;
-	uint32		  hj_CurHashValueInner;
-	uint32		  hj_CurHashValueOuter;
-	int			  hj_CurBucketNoInner;
-	int			  hj_CurBucketNoOuter;
+	HashJoinTable hj_HashTableInner;
+	HashJoinTable hj_HashTableOuter;
+	uint32		hj_CurHashValueInner;
+	uint32		hj_CurHashValueOuter;
+	int			hj_CurBucketNoOuter;
+	int			hj_CurBucketNoInner;
 
 	int			hj_CurSkewBucketNo;
 	// HashJoinTuple hj_CurTuple;
 	// TupleTableSlot *hj_OuterTupleSlot;
 	// TupleTableSlot *hj_HashTupleSlot;
-	HashJoinTuple  hj_CurTupleInner;
-	HashJoinTuple  hj_CurTupleOuter;
-	TupleTableSlot *hj_InnerTupleSlot
-	TupleTableSlot *hj_OuterTupleSlot;
+	HashJoinTuple hj_CurTupleInner;
+	HashJoinTuple hj_CurTupleOuter;
+	TupleTableSlot *hj_InnerHashTupleSlot;
+	TupleTableSlot *hj_OuterHashTupleSlot;
 
 	TupleTableSlot *hj_NullOuterTupleSlot;
 	TupleTableSlot *hj_NullInnerTupleSlot;
 	TupleTableSlot *hj_FirstOuterTupleSlot;
 	int			hj_JoinState;
 	//bool		hj_MatchedOuter;
-	bool		hj_OuterNotEmpty;
-	bool 		hj_InnerExhausted;
+	bool		hj_InnerExhausted;
 	bool		hj_OuterExhausted;
 	bool		hj_OuterNeedFill;
 	bool		hj_InnerNeedFill;
