@@ -75,7 +75,7 @@ endif # not PGXS
 vpathsearch = `for f in $(addsuffix /$(1),$(subst :, ,. $(VPATH))); do test -r $$f && echo $$f && break; done`
 
 # Saved arguments from configure
-configure_args =  '--prefix=/home/hewen/COMP9135-DBMS-Implementation/pghome'
+configure_args =  '--prefix=/home/hewen/COMP9135-DBMS-Implementation/pghome' '--enable-debug'
 
 
 ##########################################################################
@@ -198,7 +198,7 @@ with_uuid	= no
 with_zlib	= yes
 enable_rpath	= yes
 enable_nls	= no
-enable_debug	= no
+enable_debug	= yes
 enable_dtrace	= no
 enable_coverage	= no
 enable_tap_tests	= no
@@ -257,13 +257,13 @@ CC = gcc
 GCC = yes
 SUN_STUDIO_CC = no
 CXX = g++
-CFLAGS = -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Werror=vla -Wendif-labels -Wmissing-format-attribute -Wformat-security -fno-strict-aliasing -fwrapv -fexcess-precision=standard -Wno-format-truncation -Wno-stringop-truncation -O2
+CFLAGS = -Wall -Wmissing-prototypes -Wpointer-arith -Wdeclaration-after-statement -Werror=vla -Wendif-labels -Wmissing-format-attribute -Wformat-security -fno-strict-aliasing -fwrapv -fexcess-precision=standard -Wno-format-truncation -Wno-stringop-truncation -g -O2
 CFLAGS_SL = -fPIC
 CFLAGS_VECTOR =  -funroll-loops -ftree-vectorize
 CFLAGS_SSE42 = -msse4.2
 CFLAGS_ARMV8_CRC32C = 
 PERMIT_DECLARATION_AFTER_STATEMENT = -Wno-declaration-after-statement
-CXXFLAGS = -Wall -Wpointer-arith -Wendif-labels -Wmissing-format-attribute -Wformat-security -fno-strict-aliasing -fwrapv -O2
+CXXFLAGS = -Wall -Wpointer-arith -Wendif-labels -Wmissing-format-attribute -Wformat-security -fno-strict-aliasing -fwrapv -g -O2
 
 LLVM_CPPFLAGS = 
 LLVM_CFLAGS = 

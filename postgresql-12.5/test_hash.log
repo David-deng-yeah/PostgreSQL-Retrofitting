@@ -1,0 +1,2 @@
+2023-09-23 16:45:22.204 CST [238503] FATAL:  lock file "postmaster.pid" already exists
+2023-09-23 16:45:22.204 CST [238503] HINT:  Is another postmaster (PID 234600) running in data directory "/home/hewen/COMP9135-DBMS-Implementation/pghome/../data"?

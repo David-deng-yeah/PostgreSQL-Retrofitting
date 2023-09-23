@@ -83,5 +83,5 @@ extern void ExecHashRetrieveInstrumentation(HashState *node);
 extern void ExecShutdownHash(HashState *node);
 extern void ExecHashGetInstrumentation(HashInstrumentation *instrument,
 									   HashJoinTable hashtable);
-#define ELOGDEBUG(...)
+#define ELOGDEBUG(...) elog(INFO, __VA_ARGS__)
 #endif							/* NODEHASH_H */

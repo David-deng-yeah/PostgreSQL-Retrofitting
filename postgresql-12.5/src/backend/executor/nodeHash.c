@@ -138,6 +138,7 @@ ExecPrivateHash(HashState *node)
 	 * set expression context
 	 */
 	hashkeys = node->hashkeys;
+	//hashkeys = NULL;
 	econtext = node->ps.ps_ExprContext;
 
 	/*
@@ -158,7 +159,7 @@ ExecPrivateHash(HashState *node)
 		hashtable->totalTuples += 1;
 	}
 	int keyval = DebugGetKey(hashtable, econtext, hashkeys);
-	ELOGDEBUG("Hash %s got %d", node->debugInnerOuter=0?"inner":"outer", keyval)
+	ELOGDEBUG("Hash %s got %d", node->debugInnerOuter=0?"inner":"outer", keyval);
 	node->lastInsert = ExecHashTableInsert(hashtable, slot, hashvalue);
 	hashtable->totalTuples += 1;
 
