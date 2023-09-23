@@ -707,7 +707,7 @@ ExecReScanHashJoin(HashJoinState *node)
 	 * inner subnode, then we can just re-use the existing hash table without
 	 * rebuilding it.
 	 */
-	if (node->hj_HashTable != NULL)
+	if (node->hj_HashTableOuter != NULL)
 	{
 		if(node->hj_HashTableOuter != NULL)
 		{
