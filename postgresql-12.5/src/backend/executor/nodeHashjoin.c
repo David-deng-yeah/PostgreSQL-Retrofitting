@@ -765,7 +765,7 @@ ExecReScanHashJoin(HashJoinState *node)
 void
 ExecShutdownHashJoin(HashJoinState *node)
 {
-	elog(ERROR, "parallel symmetric hash join not supported.");
+	//elog(ERROR, "parallel symmetric hash join not supported.");
 }
 
 void
