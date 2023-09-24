@@ -747,6 +747,21 @@ typedef struct HashJoin
 	List	   *hashkeys;
 } HashJoin;
 
+typdef struct SymHashJoin
+{
+	/*join type, like inner-join, left-join and right-join*/
+	Join	join; 
+	/*condition expressions list*/
+	List	*hashclauses;
+	List	*hashoperators;
+	List	*hashcollations;
+	/*
+	* List of expressions to be hashed for tuples from the outer plan,
+	* to perform lookups in the hashtable over the inner plan.
+	*/
+	List	*hashkeys;
+}SymHashJoin;
+
 /* ----------------
  *		materialization node
  * ----------------

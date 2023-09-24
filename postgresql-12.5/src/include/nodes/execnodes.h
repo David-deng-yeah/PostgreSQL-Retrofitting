@@ -1959,6 +1959,21 @@ typedef struct HashJoinState
 	int			hj_JoinState;
 	bool		hj_MatchedOuter;
 	bool		hj_OuterNotEmpty;
+	// ass3
+	HashJoinTable hj_HashTableInner;
+	HashJoinTable hj_HashTableOuter;
+	uint32 hj_CurHashValueInner;
+	uint32 hj_CurHashValueOuter;
+	int hj_CurBucketNoInner;
+	int hj_CurBucketNoOuter;
+	HashJoinTuple hj_CurTupleInner;
+	HashJoinTuple hj_CurTupleOuter;
+	TupleTableSlot *hj_InnerHashTupleSlot;
+	TupleTableSlot *hj_OuterHashTupleSlot;
+	bool hj_InnerExhausted;
+	bool hj_OuterExhausted;
+	bool hj_InnerNeedFill;
+	bool hj_OuterNeedFill;
 } HashJoinState;
 
 
@@ -2282,6 +2297,7 @@ typedef struct HashState
 	PlanState	ps;				/* its first field is NodeTag */
 	HashJoinTable hashtable;	/* hash table for the hashjoin */
 	List	   *hashkeys;		/* list of ExprState nodes */
+	HashJoinTuple lastInsert;
 
 	SharedHashInfo *shared_info;	/* one entry per worker */
 	HashInstrumentation *hinstrument;	/* this worker's entry */
