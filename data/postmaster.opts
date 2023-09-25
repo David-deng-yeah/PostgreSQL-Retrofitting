@@ -1,0 +1,1 @@
+/home/hewen/COMP9135-DBMS-Implementation/pghome/bin/postgres "-D" "/home/hewen/COMP9135-DBMS-Implementation/pghome/../data"

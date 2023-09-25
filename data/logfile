@@ -1,6 +1,10 @@
-2023-07-27 17:42:35.328 CST [69154] LOG:  starting PostgreSQL 12.5 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.3.0-1ubuntu1~22.04.1) 11.3.0, 64-bit
-2023-07-27 17:42:35.328 CST [69154] LOG:  could not bind IPv4 address "127.0.0.1": Address already in use
-2023-07-27 17:42:35.328 CST [69154] HINT:  Is another postmaster already running on port 5432? If not, wait a few seconds and retry.
-2023-07-27 17:42:35.328 CST [69154] WARNING:  could not create listen socket for "localhost"
-2023-07-27 17:42:35.328 CST [69154] FATAL:  could not create any TCP/IP sockets
-2023-07-27 17:42:35.328 CST [69154] LOG:  database system is shut down
+2023-09-24 21:30:46.923 CST [296742] LOG:  starting PostgreSQL 12.5 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.3.0-1ubuntu1~22.04.1) 11.3.0, 64-bit
+2023-09-24 21:30:46.924 CST [296742] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2023-09-24 21:30:46.930 CST [296742] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2023-09-24 21:30:46.946 CST [296743] LOG:  database system was shut down at 2023-09-24 21:30:35 CST
+2023-09-24 21:30:46.950 CST [296742] LOG:  database system is ready to accept connections
+2023-09-24 21:41:13.264 CST [298995] ERROR:  syntax error at or near "/" at character 1
+2023-09-24 21:41:13.264 CST [298995] STATEMENT:  /i /home/hewen/COMP9135-DBMS-Implementation/sqls/employee.sql
+	select * from employees;
+2023-09-24 21:41:32.185 CST [298995] ERROR:  syntax error at or near "/" at character 1
+2023-09-24 21:41:32.185 CST [298995] STATEMENT:  /i /home/hewen/COMP9135-DBMS-Implementation/sqls/employee.sql;

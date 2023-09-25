@@ -3879,6 +3879,10 @@ print_path(PlannerInfo *root, Path *path, int indent)
 			ptype = "HashJoin";
 			join = true;
 			break;
+		case T_SymHashPath:
+			ptype = "SymHashJoin";
+			join = true;
+			break;
 		case T_AppendPath:
 			ptype = "Append";
 			break;

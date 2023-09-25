@@ -1799,6 +1799,27 @@ set_join_references(PlannerInfo *root, Join *join, int rtoffset)
 											   OUTER_VAR,
 											   rtoffset);
 	}
+	else if (IsA(join, SymHashJoin))
+	{
+		SymHashJoin   *hj = (SymHashJoin *) join;
+
+		hj->hashclauses = fix_join_expr(root,
+										hj->hashclauses,
+										outer_itlist,
+										inner_itlist,
+										(Index) 0,
+										rtoffset);
+
+		/*
+		 * HashJoin's hashkeys are used to look for matching tuples from its
+		 * outer plan (not the Hash node!) in the hashtable.
+		 */
+		hj->hashkeys = (List *) fix_upper_expr(root,
+											   (Node *) hj->hashkeys,
+											   outer_itlist,
+											   OUTER_VAR,
+											   rtoffset);
+	}
 
 	/*
 	 * Now we need to fix up the targetlist and qpqual, which are logically

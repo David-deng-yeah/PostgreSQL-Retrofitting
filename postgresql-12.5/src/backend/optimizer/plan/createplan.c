@@ -226,6 +226,15 @@ static HashJoin *make_hashjoin(List *tlist,
 							   List *hashkeys,
 							   Plan *lefttree, Plan *righttree,
 							   JoinType jointype, bool inner_unique);
+static SymHashJoin *make_symhashjoin(
+	List *tlist,
+	List *joinclauses, List *otherclauses,
+	List *hashclauses,
+	List *hashoperators, List *hashcollations,
+	List *hashkeys,
+	Plan *lefttree, Plan *righttree,
+	JoinType jointype, bool inner_unique
+);
 static Hash *make_hash(Plan *lefttree,
 					   List *hashkeys,
 					   Oid skewTable,

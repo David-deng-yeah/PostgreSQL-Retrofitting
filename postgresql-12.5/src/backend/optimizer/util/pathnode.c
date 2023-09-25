@@ -2564,6 +2564,65 @@ create_hashjoin_path(PlannerInfo *root,
 	return pathnode;
 }
 
+HashPath *
+create_symhashjoin_path(PlannerInfo *root,
+					 RelOptInfo *joinrel,
+					 JoinType jointype,
+					 JoinCostWorkspace *workspace,
+					 JoinPathExtraData *extra,
+					 Path *outer_path,
+					 Path *inner_path,
+					 bool parallel_hash,
+					 List *restrict_clauses,
+					 Relids required_outer,
+					 List *hashclauses)
+{
+	SymHashPath   *pathnode = makeNode(SymHashPath);
+
+	pathnode->jpath.path.pathtype = T_SymHashJoin;
+	pathnode->jpath.path.parent = joinrel;
+	pathnode->jpath.path.pathtarget = joinrel->reltarget;
+	pathnode->jpath.path.param_info =
+		get_joinrel_parampathinfo(root,
+								  joinrel,
+								  outer_path,
+								  inner_path,
+								  extra->sjinfo,
+								  required_outer,
+								  &restrict_clauses);
+	pathnode->jpath.path.parallel_aware =
+		joinrel->consider_parallel && parallel_hash;
+	pathnode->jpath.path.parallel_safe = joinrel->consider_parallel &&
+		outer_path->parallel_safe && inner_path->parallel_safe;
+	/* This is a foolish way to estimate parallel_workers, but for now... */
+	pathnode->jpath.path.parallel_workers = outer_path->parallel_workers;
+
+	/*
+	 * A hashjoin never has pathkeys, since its output ordering is
+	 * unpredictable due to possible batching.  XXX If the inner relation is
+	 * small enough, we could instruct the executor that it must not batch,
+	 * and then we could assume that the output inherits the outer relation's
+	 * ordering, which might save a sort step.  However there is considerable
+	 * downside if our estimate of the inner relation size is badly off. For
+	 * the moment we don't risk it.  (Note also that if we wanted to take this
+	 * seriously, joinpath.c would have to consider many more paths for the
+	 * outer rel than it does now.)
+	 */
+	pathnode->jpath.path.pathkeys = NIL;
+	pathnode->jpath.jointype = jointype;
+	pathnode->jpath.inner_unique = extra->inner_unique;
+	pathnode->jpath.outerjoinpath = outer_path;
+	pathnode->jpath.innerjoinpath = inner_path;
+	pathnode->jpath.joinrestrictinfo = restrict_clauses;
+	pathnode->path_hashclauses = hashclauses;
+	/* final_cost_hashjoin will fill in pathnode->num_batches */
+
+	final_cost_hashjoin(root, pathnode, workspace, extra);
+
+	return pathnode;
+}
+
+
 /*
  * create_projection_path
  *	  Creates a pathnode that represents performing a projection.
