@@ -23,6 +23,12 @@
  * the node numbers are never stored on disk.  But don't do it in a released
  * branch, because that would represent an ABI break for extensions.
  */
+
+/*
+* a node is parts of a query or execution plan, each node has
+* NodeTag associated with it to identify its type
+*
+*/
 typedef enum NodeTag
 {
 	T_Invalid = 0,

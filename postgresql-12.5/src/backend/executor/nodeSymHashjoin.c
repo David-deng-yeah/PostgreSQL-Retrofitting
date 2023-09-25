@@ -56,7 +56,12 @@ ExecSymHashJoinImpl(PlanState *pstate, bool parallel)
 	// PlanState  *outerNode;
 	HashState  *hashNodeInner;
     HashState  *hashNodeOuter;
+	// joinqual is join-condition which specifies the criteria for joining rows from 
+	// two inputs tables, determining which rows from the outer table should be combined 
+	// with rows from the inner table based on some predicate
 	ExprState  *joinqual;
+	/*represetning additional conditions or filters applied to the rows
+	* during the hash join operation*/
 	ExprState  *otherqual;
 	ExprContext *econtext;
 	HashJoinTable hashtableInner;
