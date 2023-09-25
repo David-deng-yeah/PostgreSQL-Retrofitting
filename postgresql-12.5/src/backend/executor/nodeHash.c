@@ -91,8 +91,6 @@ static TupleTableSlot* ExecPrivateHash(HashState *node);
 static TupleTableSlot *
 ExecHash(PlanState *pstate)
 {
-	// elog(ERROR, "Hash node does not support ExecProcNode call convention");
-	// return NULL;
 	return ExecPrivateHash((HashState*)pstate);
 }
 
@@ -129,8 +127,8 @@ MultiExecHash(HashState *node)
 	return NULL;
 }
 
-// fetch a single tuple from child node, insert it into the hash table
-// then return the tuple
+// fetch a single tuple from child node, insert it into  
+// the hash table, then return the tuple.
 static TupleTableSlot*
 ExecPrivateHash(HashState *node)
 {
@@ -154,28 +152,31 @@ ExecPrivateHash(HashState *node)
 	econtext = node->ps.ps_ExprContext;
 
 	/*
-	 * Get one tuples from the node below the Hash node and insert into the
+	 * Get one tuple from the node below the Hash node and insert into the
 	 * hash table (or temp files).
-	 */
+	*/
 	slot = ExecProcNode(childNode);
+	
 	if (TupIsNull(slot))
-	{
-		return NULL;
-	}
+		{
+			return NULL;
+			}
 	/* We have to compute the hash value */
 	econtext->ecxt_outertuple = slot;
 	if (ExecHashGetHashValue(hashtable, econtext, hashkeys,
-								false, hashtable->keepNulls,
-								&hashvalue))
+							false, hashtable->keepNulls,
+							&hashvalue))
 	{
-		// ignore skew bucket
+		// ignore skew bucket, related codes removed
 		hashtable->totalTuples += 1;
 	}
 
-	// /* resize the hash table if needed (NTUP_PER_BUCKET exceeded) */
+	/* resize the hash table if needed (NTUP_PER_BUCKET exceeded) */
 	// if (hashtable->nbuckets != hashtable->nbuckets_optimal)
 	// 	ExecHashIncreaseNumBuckets(hashtable);
+	// MIIGON: not needed in assignment 2: ignore batching
 
+	// insert it into the hashtable for later matching. (ignore skew optimization)
 	node->lastInsert = ExecHashTableInsert(hashtable, slot, hashvalue);
 	hashtable->totalTuples += 1;
 
@@ -185,7 +186,7 @@ ExecPrivateHash(HashState *node)
 		hashtable->spacePeak = hashtable->spaceUsed;
 
 	hashtable->partialTuples = hashtable->totalTuples;
-
+	
 	return slot;
 }
 
@@ -1721,9 +1722,8 @@ ExecHashTableInsert(HashJoinTable hashtable,
 			hashtable->nbuckets_optimal * sizeof(HashJoinTuple)
 			> hashtable->spaceAllowed)
 			ExecHashIncreaseNumBatches(hashtable);
-		if(shouldFree){
+		if (shouldFree)
 			heap_free_minimal_tuple(tuple);
-		}
 		return hashTuple;
 	}
 	else
@@ -2046,90 +2046,93 @@ ExecScanHashBucket(HashJoinState *hjstate,
 	return false;
 }
 
-/*
-* probe the hash bucket for one matching tuple
-* for the probing phase of the symmetric hash join algorithm
-* assuming econtext->ecxt_outertuple is the current outer tuple
-* and econtext->ecxt_innertuple is the current inner tuple.
-* direction: 0 -> probe inner table with outer table
-* direction: 1 -> probe outer table with inner table
-*/
 
-static 
-pg_attribute_always_inline bool 
-ExecProbeHashBucket(HashJoinState *hjstate, ExprContext *econtext, int direction)
-{
-	List *hjclauses = hjstate->hashclauses;
-	HashJoinTable hashtable;
-	HashJoinTuple hashTuple;
+// probe the hash bucket for one matching tuple
+// for the probing phase of the symmetric hash join algorithm 
+//
+// assuming econtext->ecxt_outertuple is the current outer tuple,
+// and econtext->ecxt_innertuple is the current inner tuple.
+//
+// direction: 0 - probe inner table with outer tuple, 1 - probe outer table with inner tuple
+static pg_attribute_always_inline bool ExecProbeHashBucket(HashJoinState *hjstate, ExprContext *econtext, int direction) {
+    List *hjclauses = hjstate->hashclauses;
+    HashJoinTable hashtable;
+    HashJoinTuple hashTuple;
 	TupleTableSlot *hashTupleSlot;
-	uint32 hashvalue;
+    uint32 hashvalue;
 	int curBucketNo;
 
-	if(direction == 0){
-		// probe inner table with outer tuple
+	if(direction == 0) { // probe inner table with outer tuple
 		hashtable = hjstate->hj_HashTableInner;
-		hashTuple = hjstate->hj_CurTupleInner;// null if starting search
+		hashTuple = hjstate->hj_CurTupleInner; // null if starting search
 		hashvalue = hjstate->hj_CurHashValueOuter;
 		hashTupleSlot = hjstate->hj_InnerHashTupleSlot;
 		curBucketNo = hjstate->hj_CurBucketNoOuter;
-	} else {
-		// probe outer table with inner tuple
+	} else { // probe outer table with inner tuple
 		hashtable = hjstate->hj_HashTableOuter;
-		hashTuple = hjstate->hj_CurTupleOuter;
-		hashvalue = hjstate->hj_CurHashValueOuter;
+		hashTuple = hjstate->hj_CurTupleOuter; // null if starting search
+		hashvalue = hjstate->hj_CurHashValueInner;
 		hashTupleSlot = hjstate->hj_OuterHashTupleSlot;
 		curBucketNo = hjstate->hj_CurBucketNoInner;
 	}
-
-	if (hashTuple = NULL){
+	
+	if (hashTuple != NULL)
 		hashTuple = hashTuple->next.unshared;
-	} else {
+	else
 		hashTuple = hashtable->buckets.unshared[curBucketNo];
-	}
 
-	while (hashTuple != NULL){
-		if (hashTuple->hashvalue == hashvalue){
-			ELOGDEBUG("trying %p ==%p," hashTuple->hashvalue, hashvalue);
+    while (hashTuple != NULL)
+	{
+		if (hashTuple->hashvalue == hashvalue)
+		{
+			ELOGDEBUG("trying %p == %p", hashTuple->hashvalue, hashvalue);
 			TupleTableSlot *restuple;
-			// insert hashtable's tuple into exec slot so ExecQual sees it
-			restuple = ExecStoreMinimalTuple(
-				HJTUPLE_MINTUPLE(hashTuple),
-				hashTupleSlot,
-				false
-			);
-			if (direction == 0){
-				// outer is already in ecxt_outertuple
-				econtext->ecxt_innertuple = hashTuple;
-			} else {
-				hjstate->hj_CurTupleOuter = hashTuple;
+
+			/* insert hashtable's tuple into exec slot so ExecQual sees it */
+			restuple = ExecStoreMinimalTuple(HJTUPLE_MINTUPLE(hashTuple),
+											 hashTupleSlot,
+											 false);	/* do not pfree */
+			if(direction == 0)
+				econtext->ecxt_innertuple = restuple; // outer is already in ecxt_outertuple
+			else
+				econtext->ecxt_outertuple = restuple; // inner is already in ecxt_innertuple
+
+			// exec join clause between econtext->ecxt_innertuple and econtext->ecxt_outertuple
+			if (ExecQualAndReset(hjclauses, econtext))
+			{
+				if(direction == 0) 
+					hjstate->hj_CurTupleInner = hashTuple;
+				else
+					hjstate->hj_CurTupleOuter = hashTuple;
+				return true;
 			}
-			return true;
 		} else {
 			ELOGDEBUG("discarding %p == %p", hashTuple->hashvalue, hashvalue);
 		}
+
 		hashTuple = hashTuple->next.unshared;
 	}
-	return false;
+
+    /*
+     * no match
+     */
+    return false;
 }
 
-/*
-* probe the hash bucket for one matching tuple
-* for the probing phase of the symmetric hash join algorithm
-* this one probes the inner hash table with one outer tuple
-*/
+// probe the hash bucket for one matching tuple
+// for the probing phase of the symmetric hash join algorithm 
+// this one probes the inner hash table with one outer tuple
 bool ExecProbeInnerHashBucketWithOuterTuple(HashJoinState *hjstate, ExprContext *econtext) {
 	return ExecProbeHashBucket(hjstate, econtext, 0);
 }
 
-/*
-* probe the hash bucket for one matching tuple
-* for the probing phase of the symmetric hash join algorithm
-* this one probes the outer hash table with one linear tuple
-*/
-bool ExecProbeOuterBucketWithInnerTuple(HashJoinState *hjstate, ExprContext *econtext){
+// probe the hash bucket for one matching tuple
+// for the probing phase of the symmetric hash join algorithm 
+// this one probes the outer hash table with one inner tuple
+bool ExecProbeOuterHashBucketWithInnerTuple(HashJoinState *hjstate, ExprContext *econtext) {
 	return ExecProbeHashBucket(hjstate, econtext, 1);
 }
+
 
 /*
  * ExecParallelScanHashBucket
@@ -2289,15 +2292,15 @@ ExecScanHashTableForUnmatchedSymmetric(HashJoinState *hjstate, ExprContext *econ
 	HashJoinTuple hashTuple;
 	TupleTableSlot *hashTupleSlot;
 	int *CurBucketNoRef;
-	if(sourceTable == 0){
+	if(sourceTable == 0) {
 		hashtable = hjstate->hj_HashTableInner;
 		hashTuple = hjstate->hj_CurTupleInner;
-		CurBucketNoRef = &hjstate->hj_CurBucketNoInner;
+		CurBucketNoRef = &hjstate->hj_CurBucketNoOuter;
 		hashTupleSlot = hjstate->hj_InnerHashTupleSlot;
 	} else {
 		hashtable = hjstate->hj_HashTableOuter;
 		hashTuple = hjstate->hj_CurTupleOuter;
-		CurBucketNoRef = &hjstate->hj_CurBucketNoOuter;
+		CurBucketNoRef = &hjstate->hj_CurBucketNoInner;
 		hashTupleSlot = hjstate->hj_OuterHashTupleSlot;
 	}
 
@@ -2310,13 +2313,14 @@ ExecScanHashTableForUnmatchedSymmetric(HashJoinState *hjstate, ExprContext *econ
 		 */
 		if (hashTuple != NULL)
 			hashTuple = hashTuple->next.unshared;
-		else if (*CurBucketNoRef < hashtable->nbuckets){
+		else if (*CurBucketNoRef < hashtable->nbuckets)
+		{
 			hashTuple = hashtable->buckets.unshared[*CurBucketNoRef];
 			(*CurBucketNoRef)++;
 		}
-		else{
+		else
 			break;				/* finished all buckets */
-		}
+
 		while (hashTuple != NULL)
 		{
 			if (!HeapTupleHeaderHasMatch(HJTUPLE_MINTUPLE(hashTuple)))
@@ -2324,13 +2328,10 @@ ExecScanHashTableForUnmatchedSymmetric(HashJoinState *hjstate, ExprContext *econ
 				TupleTableSlot *restuple;
 
 				/* insert hashtable's tuple into exec slot */
-				restuple = ExecStoreMinimalTuple(
-					HJTUPLE_MINTUPLE(hashTuple),
-					hashTupleSlot,
-					false;
-				)
-				// econtext->ecxt_innertuple = inntuple;
-				if (sourceTable == 0) {
+				restuple = ExecStoreMinimalTuple(HJTUPLE_MINTUPLE(hashTuple),
+												 hashTupleSlot,
+												 false);	/* do not pfree */
+				if(sourceTable == 0) {
 					econtext->ecxt_innertuple = restuple;
 				} else {
 					econtext->ecxt_outertuple = restuple;
@@ -2343,8 +2344,7 @@ ExecScanHashTableForUnmatchedSymmetric(HashJoinState *hjstate, ExprContext *econ
 				 */
 				ResetExprContext(econtext);
 
-				// hjstate->hj_CurTuple = hashTuple;
-				if (sourceTable == 0){
+				if(sourceTable == 0) {
 					hjstate->hj_CurTupleInner = hashTuple;
 				} else {
 					hjstate->hj_CurTupleOuter = hashTuple;

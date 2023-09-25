@@ -2564,7 +2564,7 @@ create_hashjoin_path(PlannerInfo *root,
 	return pathnode;
 }
 
-HashPath *
+SymHashPath *
 create_symhashjoin_path(PlannerInfo *root,
 					 RelOptInfo *joinrel,
 					 JoinType jointype,
@@ -2590,10 +2590,8 @@ create_symhashjoin_path(PlannerInfo *root,
 								  extra->sjinfo,
 								  required_outer,
 								  &restrict_clauses);
-	pathnode->jpath.path.parallel_aware =
-		joinrel->consider_parallel && parallel_hash;
-	pathnode->jpath.path.parallel_safe = joinrel->consider_parallel &&
-		outer_path->parallel_safe && inner_path->parallel_safe;
+	pathnode->jpath.path.parallel_aware = false; // disable parallel
+	pathnode->jpath.path.parallel_safe = false;
 	/* This is a foolish way to estimate parallel_workers, but for now... */
 	pathnode->jpath.path.parallel_workers = outer_path->parallel_workers;
 
@@ -2617,7 +2615,7 @@ create_symhashjoin_path(PlannerInfo *root,
 	pathnode->path_hashclauses = hashclauses;
 	/* final_cost_hashjoin will fill in pathnode->num_batches */
 
-	final_cost_hashjoin(root, pathnode, workspace, extra);
+	final_cost_symhashjoin(root, pathnode, workspace, extra);
 
 	return pathnode;
 }
@@ -4070,6 +4068,21 @@ do { \
 				HashPath   *hpath;
 
 				FLAT_COPY_PATH(hpath, path, HashPath);
+
+				jpath = (JoinPath *) hpath;
+				REPARAMETERIZE_CHILD_PATH(jpath->outerjoinpath);
+				REPARAMETERIZE_CHILD_PATH(jpath->innerjoinpath);
+				ADJUST_CHILD_ATTRS(jpath->joinrestrictinfo);
+				ADJUST_CHILD_ATTRS(hpath->path_hashclauses);
+				new_path = (Path *) hpath;
+			}
+			break;
+		case T_SymHashPath:
+			{
+				JoinPath   *jpath;
+				HashPath   *hpath;
+
+				FLAT_COPY_PATH(hpath, path, SymHashPath);
 
 				jpath = (JoinPath *) hpath;
 				REPARAMETERIZE_CHILD_PATH(jpath->outerjoinpath);

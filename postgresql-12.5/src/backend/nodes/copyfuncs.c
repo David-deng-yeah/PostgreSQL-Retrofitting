@@ -930,6 +930,8 @@ _copySymHashJoin(const SymHashJoin *from)
 	return newnode;
 }
 
+
+
 /*
  * _copyMaterial
  */
@@ -4923,6 +4925,7 @@ copyObjectImpl(const void *from)
 			break;
 		case T_SymHashJoin:
 			retval = _copySymHashJoin(from);
+			break;
 		case T_Material:
 			retval = _copyMaterial(from);
 			break;
