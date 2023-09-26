@@ -2627,6 +2627,7 @@ finalize_plan(PlannerInfo *root, Plan *plan,
 			finalize_primnode((Node *) ((SymHashJoin *) plan)->hashclauses,
 							  &context);
 			break;
+
 		case T_Limit:
 			finalize_primnode(((Limit *) plan)->limitOffset,
 							  &context);

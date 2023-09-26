@@ -767,7 +767,7 @@ _outHashJoin(StringInfo str, const HashJoin *node)
 }
 
 static void
-_outSymHashJoin(StringInfo str, const SymHashJoin *node)
+_outSymHashJoin(StringInfo str, const HashJoin *node)
 {
 	WRITE_NODE_TYPE("SYMHASHJOIN");
 
@@ -2173,7 +2173,7 @@ _outSymHashPath(StringInfo str, const SymHashPath *node)
 {
 	WRITE_NODE_TYPE("SYMHASHPATH");
 
-	_outJoinPathInfo(str, (const JoinPath *) node);
+	_outJoinPathInfo(str, (const SymJoinPath *) node);
 
 	WRITE_NODE_FIELD(path_hashclauses);
 	WRITE_INT_FIELD(num_batches);
@@ -3771,6 +3771,7 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_SymHashJoin:
 				_outSymHashJoin(str, obj);
+				break;
 			case T_Agg:
 				_outAgg(str, obj);
 				break;
@@ -4076,6 +4077,7 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_SymHashPath:
 				_outSymHashPath(str, obj);
+				break;
 			case T_PlannerGlobal:
 				_outPlannerGlobal(str, obj);
 				break;

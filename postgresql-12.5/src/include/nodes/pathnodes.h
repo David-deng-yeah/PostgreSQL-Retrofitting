@@ -20,6 +20,7 @@
 #include "nodes/params.h"
 #include "nodes/parsenodes.h"
 #include "storage/block.h"
+#include "nodes/pathnodes.h"
 
 
 /*
@@ -1500,6 +1501,27 @@ typedef struct JoinPath
 	 */
 } JoinPath;
 
+typedef struct SymJoinPath
+{
+	Path		path;
+
+	JoinType	jointype;
+
+	bool		inner_unique;	/* each outer tuple provably matches no more
+								 * than one inner tuple */
+
+	Path	   *outerjoinpath;	/* path for the outer side of the join */
+	Path	   *innerjoinpath;	/* path for the inner side of the join */
+
+	List	   *joinrestrictinfo;	/* RestrictInfos to apply to join */
+
+	/*
+	 * See the notes for RelOptInfo and ParamPathInfo to understand why
+	 * joinrestrictinfo is needed in JoinPath, and can't be merged into the
+	 * parent RelOptInfo.
+	 */
+} SymJoinPath;
+
 /*
  * A nested-loop path needs no special fields.
  */
@@ -1570,12 +1592,11 @@ typedef struct HashPath
 
 typedef struct SymHashPath
 {
-	JoinPath jpath;
-	List	 *path_hashclauses; /*join clauses used for hashing*/
-	int 	  num_batches;		/*number of batches expected*/
-	double    inner_rows_total; /*total inner rows expected*/
-}SymHashPath;
-
+	JoinPath	jpath;
+	List	   *path_hashclauses;	/* join clauses used for hashing */
+	int			num_batches;	/* number of batches expected */
+	double		inner_rows_total;	/* total inner rows expected */
+} SymHashPath;
 /*
  * ProjectionPath represents a projection (that is, targetlist computation)
  *
@@ -2504,6 +2525,13 @@ typedef struct JoinCostWorkspace
 	int			numbuckets;
 	int			numbatches;
 	double		inner_rows_total;
+
+	/* private for cost_symhashjoin code */
+	int			outer_numbuckets;
+	int			outer_numbatches;
+	double		outer_rows_total;
+	int			inner_numbuckets;
+	int			inner_numbatches;
 } JoinCostWorkspace;
 
 #endif							/* PATHNODES_H */

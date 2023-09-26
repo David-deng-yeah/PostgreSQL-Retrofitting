@@ -2781,7 +2781,7 @@ make_rel_from_joinlist(PlannerInfo *root, List *joinlist)
 		}
 		else
 		{
-			elog(ERROR, "unrecognized joinlist node type: %d",
+			elog(ERROR, "unrecognized joinlist node type(make): %d",
 				 (int) nodeTag(jlnode));
 			thisrel = NULL;		/* keep compiler quiet */
 		}

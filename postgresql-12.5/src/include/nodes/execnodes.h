@@ -1959,21 +1959,22 @@ typedef struct HashJoinState
 	int			hj_JoinState;
 	bool		hj_MatchedOuter;
 	bool		hj_OuterNotEmpty;
-	// ass3
+
+	//ass3
 	HashJoinTable hj_HashTableInner;
 	HashJoinTable hj_HashTableOuter;
-	uint32 hj_CurHashValueInner;
-	uint32 hj_CurHashValueOuter;
-	int hj_CurBucketNoInner;
-	int hj_CurBucketNoOuter;
+	uint32		hj_CurHashValueInner;
+	uint32		hj_CurHashValueOuter;
+	int			hj_CurBucketNoOuter;
+	int			hj_CurBucketNoInner;
 	HashJoinTuple hj_CurTupleInner;
 	HashJoinTuple hj_CurTupleOuter;
 	TupleTableSlot *hj_InnerHashTupleSlot;
 	TupleTableSlot *hj_OuterHashTupleSlot;
-	bool hj_InnerExhausted;
-	bool hj_OuterExhausted;
-	bool hj_InnerNeedFill;
-	bool hj_OuterNeedFill;
+	bool		hj_InnerExhausted;
+	bool		hj_OuterExhausted;
+	bool		hj_OuterNeedFill;
+	bool		hj_InnerNeedFill;	
 } HashJoinState;
 
 
