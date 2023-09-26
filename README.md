@@ -11,7 +11,9 @@ An important aspect of this course is to give you a chance to undertake an in-de
 # Course Schedule
 ![image](https://user-images.githubusercontent.com/65102150/177365247-058ccda0-2760-4dfd-920a-63ce3dfa04b4.png)
 
-# ass
-[ass1](https://github.com/David-deng-yeah/COMP9135-DBMS-Implementation/tree/ass1)
-[ass2](https://github.com/David-deng-yeah/COMP9135-DBMS-Implementation/tree/ass2)
-[ass3](https://github.com/David-deng-yeah/COMP9135-DBMS-Implementation/tree/ass3)
+# Assignment
+[Assignment 1: adding new data type into PostgreSQL server](https://github.com/David-deng-yeah/COMP9135-DBMS-Implementation/tree/ass1)
+
+[Assignment 2: Symmetric Hash Join](https://github.com/David-deng-yeah/COMP9135-DBMS-Implementation/tree/ass2)
+
+[Assignment 3: Symmetric Hash Join Operator](https://github.com/David-deng-yeah/COMP9135-DBMS-Implementation/tree/ass3)
