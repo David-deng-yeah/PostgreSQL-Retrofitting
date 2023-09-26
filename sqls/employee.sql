@@ -13,11 +13,11 @@ VALUES
     ('david', 'ray', 'student');
 
 CREATE TABLE salaries (
-    employee_id INT,
+    id INT,
     salary DECIMAL(10, 2)
 );
 
-INSERT INTO salaries (employee_id, salary)
+INSERT INTO salaries (id, salary)
 VALUES
     (1, 55000.00),
     (2, 60000.00),
