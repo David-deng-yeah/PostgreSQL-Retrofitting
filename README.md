@@ -1,21 +1,69 @@
-# DBMS Implementation COMP9315 20T1
-![image](https://user-images.githubusercontent.com/65102150/177365013-8dae95b9-34ba-43d7-bd88-367d19ff0d77.png)
+# ass2 
+```bash
+hewen=# select * from employee
+left join salary
+on employee.id = salary.id;
+INFO:  state: HJ_BUILD_HASHTABLE
+INFO:  Hash outer got 1
+INFO:  inserting hash value 0x8e731746 into bucket 1862
+INFO:  state: HJ_NEED_NEW_INNER
+INFO:  Hash inner got 1
+INFO:  inserting hash value 0x8e731746 into bucket 838
+INFO:  trying 0x8e731746 == 0x8e731746
+INFO:  potential 0x56089398bdd8 and 0x560893983d78 as match
+INFO:  marked 0x56089398bdd8 and 0x560893983d78 as match
+INFO:  **** single match, end
+INFO:  state: HJ_PROBE_OUTER
+INFO:  out of match
+INFO:  state: HJ_NEED_NEW_OUTER
+INFO:  Hash outer got 2
+INFO:  inserting hash value 0x439edcf6 into bucket 1270
+INFO:  state: HJ_NEED_NEW_INNER
+INFO:  Hash inner got 2
+INFO:  inserting hash value 0x439edcf6 into bucket 246
+INFO:  trying 0x439edcf6 == 0x439edcf6
+INFO:  potential 0x56089398be08 and 0x560893983da8 as match
+INFO:  marked 0x56089398be08 and 0x560893983da8 as match
+INFO:  **** single match, end
+INFO:  state: HJ_PROBE_OUTER
+INFO:  out of match
+INFO:  state: HJ_NEED_NEW_OUTER
+INFO:  Hash outer got 3
+INFO:  inserting hash value 0xfe534f97 into bucket 1943
+INFO:  state: HJ_NEED_NEW_INNER
+INFO:  Hash inner got 3
+INFO:  inserting hash value 0xfe534f97 into bucket 919
+INFO:  trying 0xfe534f97 == 0xfe534f97
+INFO:  potential 0x56089398be48 and 0x560893983dd8 as match
+INFO:  marked 0x56089398be48 and 0x560893983dd8 as match
+INFO:  **** single match, end
+INFO:  state: HJ_PROBE_OUTER
+INFO:  out of match
+INFO:  state: HJ_NEED_NEW_OUTER
+INFO:  Hash outer got 4
+INFO:  inserting hash value 0xc3bc2f2b into bucket 1835
+INFO:  state: HJ_NEED_NEW_INNER
+INFO:  Hash inner got 4
+INFO:  inserting hash value 0xc3bc2f2b into bucket 811
+INFO:  trying 0xc3bc2f2b == 0xc3bc2f2b
+INFO:  potential 0x56089398be88 and 0x560893983e08 as match
+INFO:  marked 0x56089398be88 and 0x560893983e08 as match
+INFO:  **** single match, end
+INFO:  state: HJ_PROBE_OUTER
+INFO:  out of match
+INFO:  state: HJ_NEED_NEW_OUTER
+INFO:  Hash outer got null
+INFO:  state: HJ_NEED_NEW_INNER
+INFO:  Hash inner got null
+INFO:  state: HJ_FILL_TUPLES
+ id | first_name | last_name | department  | id |  salary  
+----+------------+-----------+-------------+----+----------
+  1 | John       | Doe       | HR          |  1 | 55000.00
+  2 | Jane       | Smith     | Engineering |  2 | 60000.00
+  3 | Alice      | Johnson   | Finance     |  3 | 50000.00
+  4 | david      | ray       | student     |  4 | 48000.00
+(4 rows)
 
-# Course Outline
-This course aims to introduce students to the detailed internal structure of database management systems (DBMSs) such as Oracle or SQL Server. DBMSs contain a variety of interesting data structures and algorithms that are also potentially useful outside the DBMS context; knowing about them is a useful way of extending your general programming background. While the focus is on relational DBMSs, given that they have the best-developed technological foundation, we will also consider more recent developments in the management of large data repositories.
-
-Relational DBMSs need to deal with a variety of issues: storage structures and management, implementation of relational operations, query optimisation, transactions, concurrency, recovery, security. The course will address most of these, along with a brief look at emerging database systems trends. The level of detail on individual topics will vary; some will be covered in significant detail, others will be covered relatively briefly.
-
-An important aspect of this course is to give you a chance to undertake an in-depth exploration of the internals of a real DBMS: PostgreSQL. Lectures will discuss the general principles of how DBMSs are implemented, and will also illustrate them with examples from PostgreSQL where possible.
-
-# Course Schedule
-![image](https://user-images.githubusercontent.com/65102150/177365247-058ccda0-2760-4dfd-920a-63ce3dfa04b4.png)
-
-# schedule
-
-2022-7-14: finally i begin the first assignment, i can't wait to coding in PosgreSQL source code!!
-
-2022-8-1: finally compelete this course!!
-
-
+hewen=# 
+```
 
