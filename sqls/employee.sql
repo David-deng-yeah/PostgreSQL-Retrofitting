@@ -1,25 +1,26 @@
-CREATE TABLE employee (
+-- Create the "employee" table
+/* CREATE TABLE employee (
     id serial PRIMARY KEY,
     first_name VARCHAR(50),
     last_name VARCHAR(50),
     department VARCHAR(50)
-);
+); */
 
+-- Insert 1000 records into the "employee" table
 INSERT INTO employee (first_name, last_name, department)
-VALUES
-    ('John', 'Doe', 'HR'),
-    ('Jane', 'Smith', 'Engineering'),
-    ('Alice', 'Johnson', 'Finance'),
-    ('david', 'ray', 'student');
+SELECT
+    'First Name ' || generate_series(1, 1000) AS first_name,
+    'Last Name ' || generate_series(1, 1000) AS last_name,
+    'Department ' || (generate_series(1, 1000) % 5 + 1)::text AS department;
 
-CREATE TABLE salary (
+-- Create the "salary" table
+/* CREATE TABLE salary (
     id INT,
     salary DECIMAL(10, 2)
-);
+); */
 
+-- Insert 1000 records into the "salary" table
 INSERT INTO salary (id, salary)
-VALUES
-    (1, 55000.00),
-    (2, 60000.00),
-    (3, 50000.00),
-    (4, 48000.00);
+SELECT
+    generate_series(1, 1000) AS id,
+    (50000.00 + (generate_series(1, 1000) % 5001)::numeric)::numeric(10, 2) AS salary;

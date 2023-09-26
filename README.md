@@ -66,4 +66,24 @@ INFO:  state: HJ_FILL_TUPLES
 
 hewen=# 
 ```
+# compare of performance
+symmetric hash join: 1000 tuple hash join
+```bash
+992 | First Name 988  | Last Name 988  | Department 4 |  992 | 50992.00
+  993 | First Name 989  | Last Name 989  | Department 5 |  993 | 50993.00
+  994 | First Name 990  | Last Name 990  | Department 1 |  994 | 50994.00
+  995 | First Name 991  | Last Name 991  | Department 2 |  995 | 50995.00
+  996 | First Name 992  | Last Name 992  | Department 3 |  996 | 50996.00
+  997 | First Name 993  | Last Name 993  | Department 4 |  997 | 50997.00
+  998 | First Name 994  | Last Name 994  | Department 5 |  998 | 50998.00
+  999 | First Name 995  | Last Name 995  | Department 1 |  999 | 50999.00
+ 1000 | First Name 996  | Last Name 996  | Department 2 | 1000 | 51000.00
+ 1003 | First Name 999  | Last Name 999  | Department 5 |      |         
+ 1001 | First Name 997  | Last Name 997  | Department 3 |      |         
+ 1002 | First Name 998  | Last Name 998  | Department 4 |      |         
+ 1004 | First Name 1000 | Last Name 1000 | Department 1 |      |         
+(1008 rows)
 
+Time: 176.506 ms
+hewen=# 
+```
