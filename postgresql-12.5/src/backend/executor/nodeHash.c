@@ -51,21 +51,17 @@ static void *dense_alloc(HashJoinTable hashtable, Size size);
 static void MultiExecPrivateHash(HashState *node);
 static void MultiExecParallelHash(HashState *node);
 
+static TupleTableSlot* ExecPrivateHash(HashState *node); // lab2
 
-static TupleTableSlot* ExecPrivateHash(HashState *node);
 /* ----------------------------------------------------------------
  *		ExecHash
  *
  *		stub for pro forma compliance
  * ----------------------------------------------------------------
  */
-// Pipelined execution of hash it not implemented by default in PostgreSQL.
-// This function will simply return the created hash table to the caller.
 static TupleTableSlot *
 ExecHash(PlanState *pstate)
 {
-	// elog(ERROR, "Hash node does not support ExecProcNode call convention");
-	// return NULL;
 	return ExecPrivateHash((HashState*)pstate);
 }
 
@@ -76,14 +72,13 @@ ExecHash(PlanState *pstate)
  *		than one batch is required.
  * ----------------------------------------------------------------
  */
-// this function retrives all tuples from the subnode and insert them into the hash table.
-// It returns the created hash table to the caller
 Node *
 MultiExecHash(HashState *node)
 {
 	/* must provide our own instrumentation support */
 	if (node->ps.instrument)
 		InstrStartNode(node->ps.instrument);
+
 	MultiExecPrivateHash(node);
 
 	/* must provide our own instrumentation support */
@@ -107,17 +102,16 @@ MultiExecHash(HashState *node)
  *		hash table and (if necessary) batch files.
  * ----------------------------------------------------------------
  */
-
-// modify: remove MultiExecPrivateHash
 static void
 MultiExecPrivateHash(HashState *node)
 {
-	//PlanState  *outerNode;
-	//modify
 	elog(ERROR, "Hash node does not support MultiExecProcNode call convention");
 }
 
-static TupleTableSlot* 
+
+// fetch a single tuple from child node, insert it into  
+// the hash table, then return the tuple.
+static TupleTableSlot*
 ExecPrivateHash(HashState *node)
 {
 	PlanState  *childNode;
@@ -130,7 +124,6 @@ ExecPrivateHash(HashState *node)
 	/*
 	 * get state info from node
 	 */
-	//outerNode = outerPlanState(node);
 	childNode = outerPlanState(node);
 	hashtable = node->hashtable;
 
@@ -138,32 +131,39 @@ ExecPrivateHash(HashState *node)
 	 * set expression context
 	 */
 	hashkeys = node->hashkeys;
-	//hashkeys = NULL;
 	econtext = node->ps.ps_ExprContext;
 
 	/*
-	 * Get all tuples from the node below the Hash node and insert into the
+	 * Get one tuple from the node below the Hash node and insert into the
 	 * hash table (or temp files).
-	 */
-	//modify: get one tuple from the node below the Hash node and insert into the hash table
+	*/
 	slot = ExecProcNode(childNode);
-	if(TupIsNull(slot)){
-		ELOGDEBUG("Hash %s got null", node->debugInnerOuter==0?"inner":"outer");
-		return NULL;
-	}
+	
+	if (TupIsNull(slot))
+		{
+			ELOGDEBUG("Hash %s got null",node->debugInnerOuter==0?"inner":"outer");
+			return NULL;
+			}
+	/* We have to compute the hash value */
 	econtext->ecxt_outertuple = slot;
-	if(ExecHashGetHashValue(
-		hashtable, econtext, hashkeys, false, 
-		hashtable->keepNulls, &hashvalue
-	)){
+	if (ExecHashGetHashValue(hashtable, econtext, hashkeys,
+							false, hashtable->keepNulls,
+							&hashvalue))
+	{
+		// ignore skew bucket, related codes removed
 		hashtable->totalTuples += 1;
 	}
 	int keyval = DebugGetKey(hashtable, econtext, hashkeys);
-	ELOGDEBUG("Hash %s got %d", node->debugInnerOuter=0?"inner":"outer", keyval);
-	node->lastInsert = ExecHashTableInsert(hashtable, slot, hashvalue);
-	hashtable->totalTuples += 1;
+	ELOGDEBUG("Hash %s got %d",node->debugInnerOuter==0?"inner":"outer", keyval);
 
 	/* resize the hash table if needed (NTUP_PER_BUCKET exceeded) */
+	// if (hashtable->nbuckets != hashtable->nbuckets_optimal)
+	// 	ExecHashIncreaseNumBuckets(hashtable);
+	// MIIGON: not needed in assignment 2: ignore batching
+
+	// insert it into the hashtable for later matching. (ignore skew optimization)
+	node->lastInsert = ExecHashTableInsert(hashtable, slot, hashvalue);
+	hashtable->totalTuples += 1;
 
 	/* Account for the buckets in spaceUsed (reported in EXPLAIN ANALYZE) */
 	hashtable->spaceUsed += hashtable->nbuckets * sizeof(HashJoinTuple);
@@ -171,17 +171,9 @@ ExecPrivateHash(HashState *node)
 		hashtable->spacePeak = hashtable->spaceUsed;
 
 	hashtable->partialTuples = hashtable->totalTuples;
+	
 	return slot;
 }
-
-/* ----------------------------------------------------------------
- *		MultiExecParallelHash
- *
- *		parallel-aware version, building a shared hash table and
- *		(if necessary) batch files using the combined effort of
- *		a set of co-operating backends.
- * ----------------------------------------------------------------
- */
 
 /* ----------------------------------------------------------------
  *		ExecInitHash
@@ -335,8 +327,7 @@ ExecHashTableCreate(HashState *state, List *hashOperators, List *hashCollations,
 	hashtable->curbatch = 0;
 	hashtable->nbatch_original = nbatch;
 	hashtable->nbatch_outstart = nbatch;
-	// hashtable->growEnabled = true;
-	hashtable->growEnabled = false; // lab 2 turn off batching
+	hashtable->growEnabled = false; // lab2: turn off batching
 	hashtable->totalTuples = 0;
 	hashtable->partialTuples = 0;
 	hashtable->skewTuples = 0;
@@ -402,18 +393,33 @@ ExecHashTableCreate(HashState *state, List *hashOperators, List *hashCollations,
 		hashtable->collations[i] = lfirst_oid(hc);
 		i++;
 	}
-	// modify: turn off batching
+
+	// NOTE: batching code removed (for assignment 2)
 
 	MemoryContextSwitchTo(oldcxt);
-	// modify: remove parallel state
-	// Prepare context for the first-scan space allocations;
-	// allocate the hashbucket array therein, and set each bucket "empty".
+
+	/*
+		* Prepare context for the first-scan space allocations; allocate the
+		* hashbucket array therein, and set each bucket "empty".
+		*/
 	MemoryContextSwitchTo(hashtable->batchCxt);
-	hashtable->buckets.unshared = (HashJoinTuple*)palloc0(nbuckets * sizeof(HashJoinTuple));
+
+	hashtable->buckets.unshared = (HashJoinTuple *)
+		palloc0(nbuckets * sizeof(HashJoinTuple));
+
+	/*
+		* Set up for skew optimization, if possible and there's a need for
+		* more than one batch.  (In a one-batch join, there's no point in
+		* it.)
+		*/
+	// if (nbatch > 1)
+	// 	ExecHashBuildSkewHash(hashtable, node, num_skew_mcvs);
+	// NOTE: IGNORE skew optimization
+
 	MemoryContextSwitchTo(oldcxt);
+
 	return hashtable;
 }
-
 
 
 /*
@@ -649,37 +655,9 @@ ExecHashTableDestroy(HashJoinTable hashtable)
 static void
 ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 {
-	// erase when working
-	//elog(ERROR, "hash join: could not increase numBatch since batching is disabled for ass2");
+	// elog(ERROR, "hash join: could not increase numBatch since batching is disabled for ass2");
 }
 
-/*
- * ExecParallelHashIncreaseNumBatches
- *		Every participant attached to grow_batches_barrier must run this
- *		function when it observes growth == PHJ_GROWTH_NEED_MORE_BATCHES.
- */
-// modify: remove paralle
-// so remove static void ExecParallelHashIncreaseNumBatches(HashJoinTable hashtable);
-
-/*
- * Repartition the tuples currently loaded into memory for inner batch 0
- * because the number of batches has been increased.  Some tuples are retained
- * in memory and some are written out to a later batch.
- */
-
-//modify: remove parallel
-//so remove static void ExecParallelHashRepartitionFirst(HashJoinTable hashtable)
-
-/*
- * Help repartition inner batches 1..n.
- */
-//modify: remove parallel,
-// so remove ExecParallelHashRepartitionRest(HashJoinTable hashtable);
-
-/*
- * Transfer the backend-local per-batch counters to the shared totals.
- */
-// modify: remove ExecParallelHashMergeCouonters(HashJoinTable hashtable);
 /*
  * ExecHashIncreaseNumBuckets
  *		increase the original number of buckets in order to reduce
@@ -698,6 +676,7 @@ ExecHashIncreaseNumBuckets(HashJoinTable hashtable)
 	printf("Hashjoin %p: increasing nbuckets %d => %d\n",
 		   hashtable, hashtable->nbuckets, hashtable->nbuckets_optimal);
 #endif
+
 	hashtable->nbuckets = hashtable->nbuckets_optimal;
 	hashtable->log2_nbuckets = hashtable->log2_nbuckets_optimal;
 
@@ -747,8 +726,6 @@ ExecHashIncreaseNumBuckets(HashJoinTable hashtable)
 	}
 }
 
-// modify: remove ExecParallelHashIncreaseNumBuckets(HashJoinTable hashtable);
-
 /*
  * ExecHashTableInsert
  *		insert a tuple into the hash table depending on the hash value
@@ -769,24 +746,29 @@ ExecHashTableInsert(HashJoinTable hashtable,
 	MinimalTuple tuple = ExecFetchSlotMinimalTuple(slot, &shouldFree);
 	int			bucketno;
 	int			batchno;
-	// calculating the bucket's No and batch's No.
-	// this function retrives the bucket number and the batch number for a specific hash key.
+
 	ExecHashGetBucketAndBatch(hashtable, hashvalue,
 							  &bucketno, &batchno);
 
 	/*
 	 * decide whether to put the tuple in the hash table or a temp file
 	 */
-	HashJoinTuple hashTuple;// make a hashTuple
+	// if (batchno == hashtable->curbatch)
+	// {
+	// NOTE: assuming single batch
+	/*
+		* put the tuple in hash table
+		*/
+	HashJoinTuple hashTuple;
 	int			hashTupleSize;
 	double		ntuples = (hashtable->totalTuples - hashtable->skewTuples);
 
 	/* Create the HashJoinTuple */
 	hashTupleSize = HJTUPLE_OVERHEAD + tuple->t_len;
-	hashTuple = (HashJoinTuple) dense_alloc(hashtable, hashTupleSize);// allocate mem to the tuple
+	hashTuple = (HashJoinTuple) dense_alloc(hashtable, hashTupleSize);
 
 	hashTuple->hashvalue = hashvalue;
-	ELOGDEBUG("inserting hash value %p into buckets %d", hashvalue, bucketno);
+	ELOGDEBUG("inserting hash value %p into bucket %d", hashvalue, bucketno);
 	memcpy(HJTUPLE_MINTUPLE(hashTuple), tuple, tuple->t_len);
 
 	/*
@@ -798,12 +780,12 @@ ExecHashTableInsert(HashJoinTable hashtable,
 	HeapTupleHeaderClearMatch(HJTUPLE_MINTUPLE(hashTuple));
 
 	/* Push it onto the front of the bucket's list */
-	// Using head-insert algorithm to insert the hashTuple into the bucket-linkedList
 	hashTuple->next.unshared = hashtable->buckets.unshared[bucketno];
 	hashtable->buckets.unshared[bucketno] = hashTuple;
 
+	// NOTE: assuming single bucket, so some codes has been removed
+
 	/* Account for space used, and back off if we've used too much */
-	// update the space-Used of hashTable, dynamically increase mem-space
 	hashtable->spaceUsed += hashTupleSize;
 	if (hashtable->spaceUsed > hashtable->spacePeak)
 		hashtable->spacePeak = hashtable->spaceUsed;
@@ -814,44 +796,39 @@ ExecHashTableInsert(HashJoinTable hashtable,
 
 	if (shouldFree)
 		heap_free_minimal_tuple(tuple);
+	
 	return hashTuple;
 }
 
-// calculate the hashkey in the process of doing hash-join
-int DebugGetKey(HashJoinTable hashtable, ExprContext *econtext, List *hashkeys){
-	// store current thread mem-context in order to switch back later.
+int DebugGetKey(HashJoinTable hashtable, ExprContext *econtext, List *hashkeys) {
 	MemoryContext oldContext;
-	Datum keyval;
-	//reset the econtext(clear temporary mem in ExprContext), make sure previous calculation 
-	//would not influent current hash-key calculation
+	Datum		keyval;
+
+	/*
+	 * We reset the eval context each time to reclaim any memory leaked in the
+	 * hashkey expressions.
+	 */
 	ResetExprContext(econtext);
+
 	ListCell *hk;
-	oldContext = MemoryContextSwitchTo(econtext->ecxt_per_query_memory);
-	// iterate hashkey-expression in hashkeys, 
-	// calculating the hashkey to put hashTuple into correct bucket
-	foreach(hk, hashkeys){
-		ExprState *keyexpr = (ExprState *) lfirst(hk);
-		bool isNull;
-		// calculate key value
+
+	oldContext = MemoryContextSwitchTo(econtext->ecxt_per_tuple_memory);
+	foreach(hk, hashkeys)
+	{
+		ExprState  *keyexpr = (ExprState *) lfirst(hk);
+		
+		bool		isNull;
+
+		/*
+		 * Get the join attribute value of the tuple
+		 */
 		keyval = ExecEvalExpr(keyexpr, econtext, &isNull);
 		break;
 	}
-	// restore the current thread-mem-context, 
-	// make sure next operation will be done in correct context
 	MemoryContextSwitchTo(oldContext);
-	return DatumGetUInt64(keyval);
+	return DatumGetUInt64(keyval);;
 }
 
-/*
- * ExecParallelHashTableInsert
- *		insert a tuple into a shared hash table or shared batch tuplestore
- */
-/*
- * Insert a tuple into the current hash table.  Unlike
- * ExecParallelHashTableInsert, this version is not prepared to send the tuple
- * to other batches or to run out of memory, and should only be called with
- * tuples that belong in the current batch once growth has been disabled.
- */
 /*
  * ExecHashGetHashValue
  *		Compute the hash value for a tuple
@@ -999,31 +976,13 @@ ExecHashGetBucketAndBatch(HashJoinTable hashtable,
 	}
 }
 
-/*
- * ExecScanHashBucket
- *		scan a hash bucket for matches to the current outer tuple
- *
- * The current outer tuple must be stored in econtext->ecxt_outertuple.
- *
- * On success, the inner tuple is stored into hjstate->hj_CurTuple and
- * econtext->ecxt_innertuple, using hjstate->hj_HashTupleSlot as the slot
- * for the latter.
- */
-/*
- * ExecParallelScanHashBucket
- *		scan a hash bucket for matches to the current outer tuple
- *
- * The current outer tuple must be stored in econtext->ecxt_outertuple.
- *
- * On success, the inner tuple is stored into hjstate->hj_CurTuple and
- * econtext->ecxt_innertuple, using hjstate->hj_HashTupleSlot as the slot
- * for the latter.
- */
-/*
- * ExecPrepHashTableForUnmatched
- *		set up for a series of ExecScanHashTableForUnmatched calls
- */
-
+// probe the hash bucket for one matching tuple
+// for the probing phase of the symmetric hash join algorithm 
+//
+// assuming econtext->ecxt_outertuple is the current outer tuple,
+// and econtext->ecxt_innertuple is the current inner tuple.
+//
+// direction: 0 - probe inner table with outer tuple, 1 - probe outer table with inner tuple
 static pg_attribute_always_inline bool ExecProbeHashBucket(HashJoinState *hjstate, ExprContext *econtext, int direction) {
     List *hjclauses = hjstate->hashclauses;
     HashJoinTable hashtable;
@@ -1045,7 +1004,7 @@ static pg_attribute_always_inline bool ExecProbeHashBucket(HashJoinState *hjstat
 		hashTupleSlot = hjstate->hj_OuterHashTupleSlot;
 		curBucketNo = hjstate->hj_CurBucketNoInner;
 	}
-
+	
 	if (hashTuple != NULL)
 		hashTuple = hashTuple->next.unshared;
 	else
@@ -1089,13 +1048,24 @@ static pg_attribute_always_inline bool ExecProbeHashBucket(HashJoinState *hjstat
     return false;
 }
 
+// probe the hash bucket for one matching tuple
+// for the probing phase of the symmetric hash join algorithm 
+// this one probes the inner hash table with one outer tuple
 bool ExecProbeInnerHashBucketWithOuterTuple(HashJoinState *hjstate, ExprContext *econtext) {
 	return ExecProbeHashBucket(hjstate, econtext, 0);
 }
+
+// probe the hash bucket for one matching tuple
+// for the probing phase of the symmetric hash join algorithm 
+// this one probes the outer hash table with one inner tuple
 bool ExecProbeOuterHashBucketWithInnerTuple(HashJoinState *hjstate, ExprContext *econtext) {
 	return ExecProbeHashBucket(hjstate, econtext, 1);
 }
 
+/*
+ * ExecPrepHashTableForUnmatched
+ *		set up for a series of ExecScanHashTableForUnmatched calls
+ */
 void
 ExecPrepHashTableForUnmatched(HashJoinState *hjstate)
 {
@@ -1103,19 +1073,14 @@ ExecPrepHashTableForUnmatched(HashJoinState *hjstate)
 	 * During this scan we use the HashJoinState fields as follows:
 	 *
 	 * hj_CurBucketNo: next regular bucket to scan
-	 * hj_CurSkewBucketNo: next skew bucket (an index into skewBucketNums)
 	 * hj_CurTuple: last tuple returned, or NULL to start next bucket
 	 *----------
 	 */
-	// hjstate->hj_CurBucketNo = 0;
-	// hjstate->hj_CurSkewBucketNo = 0;
-	// hjstate->hj_CurTuple = NULL;
 	hjstate->hj_CurBucketNoInner = 0;
 	hjstate->hj_CurTupleInner = NULL;
 	hjstate->hj_CurBucketNoOuter = 0;
 	hjstate->hj_CurTupleOuter = NULL;
 }
-
 /*
  * ExecScanHashTableForUnmatched
  *		scan the hash table for unmatched inner tuples
@@ -1123,14 +1088,11 @@ ExecPrepHashTableForUnmatched(HashJoinState *hjstate)
  * On success, the inner tuple is stored into hjstate->hj_CurTuple and
  * econtext->ecxt_innertuple, using hjstate->hj_HashTupleSlot as the slot
  * for the latter.
+ * sourceTable: 0 - inner, 1 - outer
  */
-// this function are used in the process of executing hash-join(scan the unmatched tuple in the hashtable)
-// and put it into specific ExprContext's TupleTableSlot.
 bool
 ExecScanHashTableForUnmatched(HashJoinState *hjstate, ExprContext *econtext, int sourceTable)
 {
-	// HashJoinTable hashtable = hjstate->hj_HashTable;
-	// HashJoinTuple hashTuple = hjstate->hj_CurTuple;
 	HashJoinTable hashtable;
 	HashJoinTuple hashTuple;
 	TupleTableSlot *hashTupleSlot;
@@ -1146,7 +1108,7 @@ ExecScanHashTableForUnmatched(HashJoinState *hjstate, ExprContext *econtext, int
 		CurBucketNoRef = &hjstate->hj_CurBucketNoInner;
 		hashTupleSlot = hjstate->hj_OuterHashTupleSlot;
 	}
-	// iterate all buckets and tuples in the inner/outer hashtable(depend on sourcetable)
+
 	for (;;)
 	{
 		/*
@@ -1279,16 +1241,6 @@ ExecReScanHash(HashState *node)
 		ExecReScan(node->ps.lefttree);
 }
 
-
-/*
- * ExecHashBuildSkewHash
- *
- *		Set up for skew optimization if we can identify the most common values
- *		(MCVs) of the outer relation's join key.  We make a skew hash bucket
- *		for the hash value of each MCV, up to the number of slots allowed
- *		based on available memory.
- */
-//attention
 /*
  * ExecHashGetSkewBucket
  *
@@ -1334,23 +1286,6 @@ ExecHashGetSkewBucket(HashJoinTable hashtable, uint32 hashvalue)
 	return INVALID_SKEW_BUCKET_NO;
 }
 
-/*
- * ExecHashSkewTableInsert
- *
- *		Insert a tuple into the skew hashtable.
- *
- * This should generally match up with the current-batch case in
- * ExecHashTableInsert.
- */
-//attention
-
-/*
- *		ExecHashRemoveNextSkewBucket
- *
- *		Remove the least valuable skew bucket by pushing its tuples into
- *		the main hash table.
- */
-//attention
 /*
  * Reserve space in the DSM segment for instrumentation data.
  */
@@ -1530,46 +1465,6 @@ dense_alloc(HashJoinTable hashtable, Size size)
 }
 
 /*
- * Allocate space for a tuple in shared dense storage.  This is equivalent to
- * dense_alloc but for Parallel Hash using shared memory.
- *
- * While loading a tuple into shared memory, we might run out of memory and
- * decide to repartition, or determine that the load factor is too high and
- * decide to expand the bucket array, or discover that another participant has
- * commanded us to help do that.  Return NULL if number of buckets or batches
- * has changed, indicating that the caller must retry (considering the
- * possibility that the tuple no longer belongs in the same batch).
- */
-// modify: remove
-// static HashJoinTuple
-// ExecParallelHashTupleAlloc(HashJoinTable hashtable, size_t size,
-// 						   dsa_pointer *shared)
-/*
- * One backend needs to set up the shared batch state including tuplestores.
- * Other backends will ensure they have correctly configured accessors by
- * called ExecParallelHashEnsureBatchAccessors().
- */
-// modify: remove
-// static void
-// ExecParallelHashJoinSetUpBatches(HashJoinTable hashtable, int nbatch)
-
-/*
- * Free the current set of ParallelHashJoinBatchAccessor objects.
- */
-// modify: remove
-// static void
-// ExecParallelHashCloseBatchAccessors(HashJoinTable hashtable)
-/*
- * Make sure this backend has up-to-date accessors for the current set of
- * batches.
- */
-
-/*
- * Allocate an empty shared memory hash table for a given batch.
- */
-
-
-/*
  * If we are currently attached to a shared hash join batch, detach.  If we
  * are last to detach, clean up.
  */
@@ -1663,45 +1558,3 @@ ExecHashTableDetach(HashJoinTable hashtable)
 		hashtable->parallel_state = NULL;
 	}
 }
-
-/*
- * Get the first tuple in a given bucket identified by number.
- */
-
-/*
- * Get the next tuple in the same bucket as 'tuple'.
- */
-
-
-/*
- * Insert a tuple at the front of a chain of tuples in DSA memory atomically.
- */
-
-/*
- * Prepare to work on a given batch.
- */
-/*
- * Take the next available chunk from the queue of chunks being worked on in
- * parallel.  Return NULL if there are none left.  Otherwise return a pointer
- * to the chunk, and set *shared to the DSA pointer to the chunk.
- */
-/*
- * Increase the space preallocated in this backend for a given inner batch by
- * at least a given amount.  This allows us to track whether a given batch
- * would fit in memory when loaded back in.  Also increase the number of
- * batches or buckets if required.
- *
- * This maintains a running estimation of how much space will be taken when we
- * load the batch back into memory by simulating the way chunks will be handed
- * out to workers.  It's not perfectly accurate because the tuples will be
- * packed into memory chunks differently by ExecParallelHashTupleAlloc(), but
- * it should be pretty close.  It tends to overestimate by a fraction of a
- * chunk per worker since all workers gang up to preallocate during hashing,
- * but workers tend to reload batches alone if there are enough to go around,
- * leaving fewer partially filled chunks.  This effect is bounded by
- * nparticipants.
- *
- * Return false if the number of batches or buckets has changed, and the
- * caller should reconsider which batch a given tuple now belongs in and call
- * again.
- */

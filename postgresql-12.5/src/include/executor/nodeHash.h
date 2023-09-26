@@ -33,13 +33,10 @@ extern void ExecHashTableDetach(HashJoinTable hashtable);
 extern void ExecHashTableDetachBatch(HashJoinTable hashtable);
 extern void ExecParallelHashTableSetCurrentBatch(HashJoinTable hashtable,
 												 int batchno);
-//modify
-// extern void ExecHashTableInsert(HashJoinTable hashtable,
-// 								TupleTableSlot *slot,
-// 								uint32 hashvalue);
 extern int DebugGetKey(HashJoinTable hashtable, ExprContext *econtext, List *hashkeys);
-extern HashJoinTuple ExecHashTableInsert(HashJoinTable hashtable, TupleTableSlot *slot, uint32 hashbalue);
-
+extern HashJoinTuple ExecHashTableInsert(HashJoinTable hashtable,
+								TupleTableSlot *slot,
+								uint32 hashvalue);
 extern void ExecParallelHashTableInsert(HashJoinTable hashtable,
 										TupleTableSlot *slot,
 										uint32 hashvalue);
@@ -56,16 +53,10 @@ extern void ExecHashGetBucketAndBatch(HashJoinTable hashtable,
 									  uint32 hashvalue,
 									  int *bucketno,
 									  int *batchno);
-// extern bool ExecScanHashBucket(HashJoinState *hjstate, ExprContext *econtext);
-// extern bool ExecParallelScanHashBucket(HashJoinState *hjstate, ExprContext *econtext);
 extern void ExecPrepHashTableForUnmatched(HashJoinState *hjstate);
-// extern bool ExecScanHashTableForUnmatched(HashJoinState *hjstate,
-// 										  ExprContext *econtext);
-//modify
-extern bool ExecScanHashTableForUnmateched(HashJoinState *hjstate, ExprContext *econtext, int sourceTable);
+extern bool ExecScanHashTableForUnmatched(HashJoinState *hjstate, ExprContext *econtext, int sourceTable);
 extern bool ExecProbeInnerHashBucketWithOuterTuple(HashJoinState *hjstate, ExprContext *econtext);
 extern bool ExecProbeOuterHashBucketWithInnerTuple(HashJoinState *hjstate, ExprContext *econtext);
-
 extern void ExecHashTableReset(HashJoinTable hashtable);
 extern void ExecHashTableResetMatchFlags(HashJoinTable hashtable);
 extern void ExecChooseHashTableSize(double ntuples, int tupwidth, bool useskew,
